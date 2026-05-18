@@ -7,13 +7,26 @@ export default function AuthCallbackPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data, error }) => {
-      if (error || !data.session) {
-        setError(error?.message ?? "Xác thực thất bại. Vui lòng thử lại.");
-        return;
+    // Handle both PKCE (?code=) and implicit (#access_token=) flows.
+    // onAuthStateChange fires once the session is established from either flow.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_IN" && session) {
+        subscription.unsubscribe();
+        navigate("/upload", { replace: true });
+      } else if (event === "SIGNED_OUT" || (!session && event !== "INITIAL_SESSION")) {
+        setError("Xác thực thất bại. Vui lòng thử lại.");
       }
-      navigate("/upload", { replace: true });
     });
+
+    // Fallback: if session already exists (page refreshed mid-flow)
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session) {
+        subscription.unsubscribe();
+        navigate("/upload", { replace: true });
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, [navigate]);
 
   if (error) {
