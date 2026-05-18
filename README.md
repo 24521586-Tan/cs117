@@ -1,4 +1,4 @@
-# MeetMind.
+# MeetMind
 
 AI-powered meeting transcription. Upload  /  audio → WhisperX transcript → displayed in browser.
 
