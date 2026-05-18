@@ -1,3 +1,5 @@
+import re
+import unicodedata
 import uuid
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, UploadFile
@@ -10,6 +12,13 @@ router = APIRouter(prefix="/upload", tags=["upload"])
 bearer = HTTPBearer()
 
 ALLOWED_TYPES = {"audio/mpeg", "audio/mp4", "audio/x-m4a", "audio/m4a"}
+
+
+def safe_filename(name: str) -> str:
+    """Normalize unicode → ASCII, replace unsafe chars with hyphens."""
+    name = unicodedata.normalize("NFKD", name).encode("ascii", "ignore").decode()
+    name = re.sub(r"[^\w.\-]", "-", name)
+    return name.strip("-") or "audio"
 
 
 def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(bearer)):
@@ -32,8 +41,15 @@ async def upload_audio(
         raise HTTPException(status_code=422, detail="Only .mp3 / .m4a files are accepted")
 
     sb = get_supabase()
+
+    # Ensure profile row exists (foreign key required before inserting job)
+    sb.table("profiles").upsert(
+        {"id": user.id, "email": user.email},
+        on_conflict="id",
+    ).execute()
+
     file_bytes = await file.read()
-    storage_path = f"{user.id}/{uuid.uuid4()}-{file.filename}"
+    storage_path = f"{user.id}/{uuid.uuid4()}-{safe_filename(file.filename or 'audio')}"
 
     sb.storage.from_("audio-files").upload(
         storage_path,
