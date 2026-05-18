@@ -7,7 +7,7 @@ AI-powered meeting transcription. Upload  /  audio → WhisperX transcript → d
 | Layer | Tech |
 |-------|------|
 | Frontend | React + Vite + TypeScript + TailwindCSS |
-| Backend | FastAPI + Celery + Redis |
+| Backend | FastAPI + BackgroundTasks |
 | Auth | Supabase Google OAuth |
 | Storage | Supabase Storage (bucket: ) |
 | DB | Supabase PostgreSQL |
@@ -36,15 +36,6 @@ Run API server:
 .venv/bin/uvicorn app.main:app --reload --port 8000
 ```
 
-Run Celery worker (separate terminal, Redis must be running):
-```bash
-# Windows
-.venv\Scripts\python.exe -m celery -A app.celery_app.celery worker --loglevel=info --pool=solo
-
-# macOS/Linux
-.venv/bin/celery -A app.celery_app.celery worker --loglevel=info
-```
-
 ### 2. Frontend
 
 ```bash
@@ -54,14 +45,7 @@ cp .env.example .env   # fill in your values
 npm run dev            # → http://localhost:5173
 ```
 
-### 3. Redis (local dev)
-
-```bash
-# Docker
-docker run -p 6379:6379 redis:7-alpine
-```
-
-### 4. Colab WhisperX endpoint
+### 3. Colab WhisperX endpoint
 
 1. Open the WhisperX Colab notebook (provided separately).
 2. Run all cells — it exposes a public URL via  or .

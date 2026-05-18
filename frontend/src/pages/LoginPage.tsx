@@ -5,7 +5,7 @@ export default function LoginPage() {
     await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${import.meta.env.VITE_API_URL}/auth/callback`,
+        redirectTo: `${window.location.origin}/auth/callback`,
         scopes: "openid email profile",
       },
     });
