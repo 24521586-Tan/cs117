@@ -1,9 +1,11 @@
+import os
 from notion_client import Client
 from datetime import datetime
 
-# Cấu hình thông tin
-NOTION_TOKEN = "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"
-DATABASE_ID = "347b4b3cf24980c88a86ef0b4ed19b78"
+# Read secrets from environment (never hardcode tokens).
+#   PowerShell: $env:NOTION_TOKEN="..."; $env:NOTION_DATABASE_ID="..."
+NOTION_TOKEN = os.environ["NOTION_TOKEN"]
+DATABASE_ID = os.environ["NOTION_DATABASE_ID"]
 
 notion = Client(auth=NOTION_TOKEN)
 

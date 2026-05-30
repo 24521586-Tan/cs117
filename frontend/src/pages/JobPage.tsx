@@ -6,25 +6,24 @@ import { supabase } from "../lib/supabase";
 const API = import.meta.env.VITE_API_URL as string;
 const POLL_MS = 3000;
 
-type Segment = { start: number; end: number; text: string };
-type Transcript = { segments: Segment[]; language?: string };
-
-function fmt(s: number) {
-  const m = Math.floor(s / 60).toString().padStart(2, "0");
-  const sec = Math.floor(s % 60).toString().padStart(2, "0");
-  return `${m}:${sec}`;
-}
-
+// Pipeline stages, in order. Index is derived from the job status.
 const STEPS = [
-  "Tải lên Supabase Storage",
-  "Tách giọng nói (Diarization)",
-  "Chuyển đổi giọng nói → văn bản",
+  "Tạo bản ghi lời nói (WhisperX)",
+  "Phân tích nội dung (Gemini)",
+  "Đồng bộ sang Notion",
 ];
+
+const STATUS_STEP: Record<string, number> = {
+  pending: 0,
+  transcribing: 0,
+  analyzing: 1,
+  syncing: 2,
+};
 
 export default function JobPage() {
   const { id } = useParams<{ id: string }>();
   const [status, setStatus] = useState<string>("pending");
-  const [transcript, setTranscript] = useState<Transcript | null>(null);
+  const [notionUrl, setNotionUrl] = useState<string | null>(null);
   const [elapsed, setElapsed] = useState(0);
   const [error, setError] = useState("");
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -33,6 +32,11 @@ export default function JobPage() {
   const getToken = async () => {
     const { data } = await supabase.auth.getSession();
     return data.session?.access_token ?? "";
+  };
+
+  const stop = () => {
+    clearInterval(timer.current!);
+    clearInterval(ticker.current!);
   };
 
   const fetchStatus = async () => {
@@ -44,20 +48,15 @@ export default function JobPage() {
       setStatus(data.status);
 
       if (data.status === "done") {
-        clearInterval(timer.current!);
-        clearInterval(ticker.current!);
-        const tRes = await fetch(`${API}/jobs/${id}/transcript`, { headers: { Authorization: `Bearer ${token}` } });
-        const tData = await tRes.json();
-        setTranscript(tData.transcript);
+        stop();
+        setNotionUrl(data.notion_url ?? null);
       } else if (data.status === "failed") {
-        clearInterval(timer.current!);
-        clearInterval(ticker.current!);
-        setError("Phân tích thất bại. Vui lòng thử lại.");
+        stop();
+        setError(data.error || "Phân tích thất bại. Vui lòng thử lại.");
       }
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Lỗi không xác định");
-      clearInterval(timer.current!);
-      clearInterval(ticker.current!);
+      stop();
     }
   };
 
@@ -65,37 +64,27 @@ export default function JobPage() {
     fetchStatus();
     timer.current = setInterval(fetchStatus, POLL_MS);
     ticker.current = setInterval(() => setElapsed(s => s + 1), 1000);
-    return () => { clearInterval(timer.current!); clearInterval(ticker.current!); };
+    return () => stop();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const isDone = status === "done";
   const isFailed = status === "failed" || !!error;
 
-  const downloadTranscript = () => {
-    if (!transcript) return;
-    const text = transcript.segments.map(s => `[${fmt(s.start)} – ${fmt(s.end)}] ${s.text}`).join("\n");
-    const blob = new Blob([text], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url; a.download = `transcript-${id}.txt`; a.click();
-    URL.revokeObjectURL(url);
-  };
-
   return (
     <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
-      <NavBar showDownload={isDone} onDownload={downloadTranscript} />
+      <NavBar />
 
       {!isDone && !isFailed && <ProcessingView status={status} elapsed={elapsed} />}
       {isFailed && <ErrorView message={error} />}
-      {isDone && transcript && <TranscriptView transcript={transcript} jobId={id!} />}
+      {isDone && <DoneView notionUrl={notionUrl} jobId={id!} />}
     </div>
   );
 }
 
 /* ── Processing view ── */
 function ProcessingView({ status, elapsed }: { status: string; elapsed: number }) {
-  const stepIndex = status === "processing" ? 2 : 0;
+  const stepIndex = STATUS_STEP[status] ?? 0;
   const m = Math.floor(elapsed / 60);
   const s = elapsed % 60;
 
@@ -125,8 +114,8 @@ function ProcessingView({ status, elapsed }: { status: string; elapsed: number }
         `}</style>
 
         <div>
-          <div style={{ fontFamily: "'Google Sans', sans-serif", fontSize: 22, fontWeight: 400, color: "var(--gray-900)" }}>Đang phân tích bản ghi âm</div>
-          <div style={{ fontSize: 14, color: "var(--gray-600)", marginTop: 8 }}>Thường mất 1–3 phút · Bạn có thể đóng tab, kết quả sẽ gửi qua email</div>
+          <div style={{ fontFamily: "'Google Sans', sans-serif", fontSize: 22, fontWeight: 400, color: "var(--gray-900)" }}>Đang xử lý cuộc họp</div>
+          <div style={{ fontSize: 14, color: "var(--gray-600)", marginTop: 8 }}>Có thể mất vài phút với bản ghi dài · Bạn có thể đóng tab</div>
         </div>
 
         {/* Steps */}
@@ -151,54 +140,29 @@ function ProcessingView({ status, elapsed }: { status: string; elapsed: number }
   );
 }
 
-/* ── Transcript view ── */
-function TranscriptView({ transcript, jobId }: { transcript: Transcript; jobId: string }) {
+/* ── Done view ── */
+function DoneView({ notionUrl, jobId }: { notionUrl: string | null; jobId: string }) {
   return (
-    <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", padding: "32px 24px", gap: 20, maxWidth: 800, margin: "0 auto", width: "100%" }}>
-      {/* Top bar */}
-      <div style={{ width: "100%", display: "flex", alignItems: "center", gap: 12 }}>
-        <a href="/upload" style={{ width: 40, height: 40, borderRadius: "50%", border: "none", background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", textDecoration: "none" }}
-          onMouseEnter={e => (e.currentTarget.style.background = "var(--gray-100)")}
-          onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
-        >
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="var(--gray-600)"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" /></svg>
-        </a>
-        <div style={{ flex: 1, fontFamily: "'Google Sans', sans-serif", fontSize: 20, fontWeight: 500, color: "var(--gray-900)" }}>
-          Job #{jobId.slice(0, 8)}
+    <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
+      <div style={{ background: "var(--surface)", borderRadius: "var(--radius-lg)", boxShadow: "var(--shadow-1)", padding: "48px 48px", textAlign: "center", maxWidth: 440 }}>
+        <div style={{ width: 56, height: 56, borderRadius: "50%", background: "var(--green-light)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px" }}>
+          <svg viewBox="0 0 24 24" width="30" height="30" fill="var(--green)"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" /></svg>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 12px", borderRadius: 16, background: "var(--green-light)", color: "var(--green)", fontSize: 12, fontWeight: 500, fontFamily: "'Google Sans', sans-serif" }}>
-          <svg viewBox="0 0 24 24" width="14" height="14" fill="var(--green)"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" /></svg>
-          Hoàn thành
-        </div>
-      </div>
-
-      {/* Transcript card */}
-      <div style={{ width: "100%", background: "var(--surface)", borderRadius: "var(--radius-lg)", boxShadow: "var(--shadow-1)", overflow: "hidden" }}>
-        <div style={{ padding: "16px 24px", borderBottom: "1px solid var(--gray-200)", display: "flex", alignItems: "center", gap: 12 }}>
-          <span style={{ fontFamily: "'Google Sans', sans-serif", fontSize: 14, fontWeight: 500, color: "var(--gray-800)", flex: 1 }}>
-            Transcript · {transcript.segments.length} đoạn
-          </span>
-          {transcript.language && (
-            <div style={{ padding: "2px 10px", background: "var(--blue-light)", color: "var(--blue)", borderRadius: 12, fontSize: 12, fontWeight: 500 }}>
-              {transcript.language}
-            </div>
-          )}
-        </div>
-
-        <div>
-          {transcript.segments.map((seg, i) => (
-            <div key={i} style={{ display: "flex", gap: 16, padding: "14px 24px", borderBottom: i < transcript.segments.length - 1 ? "1px solid var(--gray-100)" : "none", transition: "background .15s", cursor: "pointer" }}
-              onMouseEnter={e => (e.currentTarget.style.background = "var(--gray-50)")}
-              onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
-            >
-              <div style={{ fontFamily: "monospace", fontSize: 12, color: "var(--gray-600)", whiteSpace: "nowrap", paddingTop: 2, minWidth: 110 }}>
-                {fmt(seg.start)} – {fmt(seg.end)}
-              </div>
-              <div style={{ fontSize: 14, color: "var(--gray-900)", lineHeight: 1.6, flex: 1 }}>
-                {seg.text}
-              </div>
-            </div>
-          ))}
+        <p style={{ fontSize: 20, fontFamily: "'Google Sans', sans-serif", color: "var(--gray-900)", marginBottom: 8 }}>Hoàn thành!</p>
+        <p style={{ fontSize: 14, color: "var(--gray-600)", marginBottom: 28 }}>
+          Trang ghi chú (Tóm tắt + To-do) đã được tạo trên Notion · Job #{jobId.slice(0, 8)}
+        </p>
+        {notionUrl ? (
+          <a href={notionUrl} target="_blank" rel="noopener noreferrer"
+            style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "12px 28px", background: "var(--blue)", color: "white", borderRadius: 4, fontFamily: "'Google Sans', sans-serif", fontSize: 14, fontWeight: 500, textDecoration: "none" }}>
+            Mở trang Notion
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="white"><path d="M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z" /></svg>
+          </a>
+        ) : (
+          <p style={{ fontSize: 13, color: "var(--gray-600)" }}>Không tìm thấy link Notion (kiểm tra cấu hình NOTION_*).</p>
+        )}
+        <div style={{ marginTop: 24 }}>
+          <a href="/upload" style={{ fontSize: 13, color: "var(--blue)", textDecoration: "none" }}>← Tải lên cuộc họp khác</a>
         </div>
       </div>
     </div>
@@ -209,12 +173,12 @@ function TranscriptView({ transcript, jobId }: { transcript: Transcript; jobId: 
 function ErrorView({ message }: { message: string }) {
   return (
     <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
-      <div style={{ background: "var(--surface)", borderRadius: "var(--radius-lg)", boxShadow: "var(--shadow-1)", padding: "40px 48px", textAlign: "center", maxWidth: 400 }}>
+      <div style={{ background: "var(--surface)", borderRadius: "var(--radius-lg)", boxShadow: "var(--shadow-1)", padding: "40px 48px", textAlign: "center", maxWidth: 440 }}>
         <div style={{ width: 48, height: 48, borderRadius: "50%", background: "var(--red-light)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
           <svg viewBox="0 0 24 24" width="24" height="24" fill="var(--red)"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" /></svg>
         </div>
         <p style={{ fontSize: 16, fontFamily: "'Google Sans', sans-serif", color: "var(--gray-900)", marginBottom: 8 }}>Phân tích thất bại</p>
-        <p style={{ fontSize: 13, color: "var(--gray-600)", marginBottom: 24 }}>{message}</p>
+        <p style={{ fontSize: 13, color: "var(--gray-600)", marginBottom: 24, wordBreak: "break-word" }}>{message}</p>
         <a href="/upload" style={{ display: "inline-flex", padding: "10px 24px", background: "var(--blue)", color: "white", borderRadius: 4, fontFamily: "'Google Sans', sans-serif", fontSize: 14, fontWeight: 500, textDecoration: "none" }}>
           Thử lại
         </a>

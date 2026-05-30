@@ -34,7 +34,12 @@ def _get_job(job_id: str, user_id: str):
 @router.get("/{job_id}/status")
 async def get_job_status(job_id: str, user=Depends(get_current_user)):
     job = _get_job(job_id, user.id)
-    return {"job_id": job["id"], "status": job["status"]}
+    return {
+        "job_id": job["id"],
+        "status": job["status"],
+        "notion_url": job.get("notion_url"),
+        "error": job.get("error"),
+    }
 
 
 @router.get("/{job_id}/transcript")
@@ -43,3 +48,15 @@ async def get_job_transcript(job_id: str, user=Depends(get_current_user)):
     if job["status"] != "done":
         raise HTTPException(status_code=409, detail=f"Job status is '{job['status']}', not done")
     return {"job_id": job["id"], "transcript": job["transcript"]}
+
+
+@router.get("/{job_id}/result")
+async def get_job_result(job_id: str, user=Depends(get_current_user)):
+    job = _get_job(job_id, user.id)
+    if job["status"] != "done":
+        raise HTTPException(status_code=409, detail=f"Job status is '{job['status']}', not done")
+    return {
+        "job_id": job["id"],
+        "notion_url": job.get("notion_url"),
+        "analysis": job.get("analysis"),
+    }

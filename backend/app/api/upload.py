@@ -6,19 +6,22 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, UploadFi
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.core.supabase import get_supabase
-from app.workers.transcribe import transcribe_audio
+from app.workers.pipeline import process_job
 
 router = APIRouter(prefix="/upload", tags=["upload"])
 bearer = HTTPBearer()
 
-ALLOWED_TYPES = {"audio/mpeg", "audio/mp4", "audio/x-m4a", "audio/m4a"}
+ALLOWED_AUDIO = {"audio/mpeg", "audio/mp4", "audio/x-m4a", "audio/m4a",
+                 "audio/wav", "audio/x-wav", "audio/wave"}
+ALLOWED_PDF = {"application/pdf"}
+_BUCKET = "audio-files"
 
 
 def safe_filename(name: str) -> str:
     """Normalize unicode → ASCII, replace unsafe chars with hyphens."""
     name = unicodedata.normalize("NFKD", name).encode("ascii", "ignore").decode()
     name = re.sub(r"[^\w.\-]", "-", name)
-    return name.strip("-") or "audio"
+    return name.strip("-") or "file"
 
 
 def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(bearer)):
@@ -31,40 +34,47 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(bearer)
         raise HTTPException(status_code=401, detail="Invalid or expired token")
 
 
+def _store(sb, user_id: str, upload: UploadFile, raw: bytes) -> str:
+    path = f"{user_id}/{uuid.uuid4()}-{safe_filename(upload.filename or 'file')}"
+    sb.storage.from_(_BUCKET).upload(
+        path, raw, file_options={"content-type": upload.content_type or "application/octet-stream"}
+    )
+    return path
+
+
 @router.post("")
-async def upload_audio(
+async def upload_meeting(
     file: UploadFile,
+    slides: UploadFile,
     background_tasks: BackgroundTasks,
     user=Depends(get_current_user),
 ):
-    if file.content_type not in ALLOWED_TYPES:
-        raise HTTPException(status_code=422, detail="Only .mp3 / .m4a files are accepted")
+    if file.content_type not in ALLOWED_AUDIO:
+        raise HTTPException(status_code=422, detail="Audio must be .mp3 / .m4a / .wav")
+    if slides.content_type not in ALLOWED_PDF:
+        raise HTTPException(status_code=422, detail="Slides must be a .pdf file")
 
     sb = get_supabase()
 
     # Ensure profile row exists (foreign key required before inserting job)
-    sb.table("profiles").upsert(
-        {"id": user.id, "email": user.email},
-        on_conflict="id",
-    ).execute()
+    sb.table("profiles").upsert({"id": user.id, "email": user.email}, on_conflict="id").execute()
 
-    file_bytes = await file.read()
-    storage_path = f"{user.id}/{uuid.uuid4()}-{safe_filename(file.filename or 'audio')}"
-
-    sb.storage.from_("audio-files").upload(
-        storage_path,
-        file_bytes,
-        file_options={"content-type": file.content_type},
-    )
+    audio_path = _store(sb, user.id, file, await file.read())
+    slide_path = _store(sb, user.id, slides, await slides.read())
 
     job = (
         sb.table("jobs")
-        .insert({"user_id": user.id, "status": "pending", "file_path": storage_path})
+        .insert({
+            "user_id": user.id,
+            "status": "pending",
+            "file_path": audio_path,
+            "slide_path": slide_path,
+        })
         .execute()
         .data[0]
     )
 
     job_id = job["id"]
-    background_tasks.add_task(transcribe_audio, job_id, storage_path)
+    background_tasks.add_task(process_job, job_id, audio_path, slide_path)
 
     return {"job_id": job_id}
