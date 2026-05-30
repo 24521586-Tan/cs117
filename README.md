@@ -2,77 +2,103 @@
 
 Upload a meeting **recording + slide PDF** → get one **Notion page** with a
 Meeting Summary and a grouped To-do list (checkbox · deadline · verbatim quote ·
-source slide).
+source slide number).
 
-Pipeline: `audio → WhisperX transcript → markitdown slides → Gemini analysis → Notion page`.
+```
+audio (.mp3/.m4a/.wav)  ┐
+                         ├─► WhisperX → Gemini → Notion page
+slides (.pdf)           ┘
+```
+
+## Quick start
+
+**➜ [Full local run guide →  docs/e2e-local-run.md](docs/e2e-local-run.md)**
+
+Short version — after filling `backend/.env`:
+
+```powershell
+# CLI (no browser, no auth — fastest way to verify)
+cd backend
+.venv\Scripts\python.exe scripts\run_pipeline_local.py --audio meeting.mp3 --pdf slides.pdf
+# prints: ✅ Notion page: https://www.notion.so/…
+
+# Web UI
+cd backend && .venv\Scripts\python.exe -m uvicorn app.main:app --reload --port 8000
+cd frontend && npm run dev   # → http://localhost:5173
+```
 
 ## Stack
 
 | Layer    | Tech                                            |
 |----------|-------------------------------------------------|
-| Frontend | React + Vite + TypeScript                       |
-| Backend  | FastAPI + BackgroundTasks                       |
+| Frontend | React 19 + Vite + TypeScript                    |
+| Backend  | FastAPI + BackgroundTasks (Python 3.13)         |
 | Auth/DB  | Supabase (Google OAuth, Postgres, Storage)      |
 | ASR      | WhisperX on Google Colab (GPU) via ngrok        |
-| LLM      | Google Gemini (`gemini-2.5-flash`)              |
+| LLM      | Google Gemini `gemini-2.5-flash`                |
 | Output   | Notion database page                            |
 
-## Run locally
+## Prerequisites
 
-### 0. Prereqs
-- Supabase project (URL + anon + service-role keys) with an `audio-files` Storage bucket.
-- Apply DB migrations in the Supabase SQL editor: `db/migrations/001_*.sql` then `db/migrations/002_*.sql`.
-- A Google Gemini API key.
-- A Notion integration + database — see [docs/notion-setup.md](docs/notion-setup.md).
+| What | Where |
+|------|-------|
+| Supabase project + `audio-files` bucket | <https://supabase.com> |
+| DB migrations applied (001 + 002) | Supabase → SQL Editor |
+| Gemini API key | <https://aistudio.google.com/app/apikey> |
+| Notion integration + database | [docs/notion-setup.md](docs/notion-setup.md) |
+| Colab WhisperX server *(optional)* | `colab/meetmind-whisperx-server.ipynb` |
 
-### 1. Backend
-```powershell
-cd backend
-python -m venv .venv
-.venv\Scripts\pip install -r requirements.txt
-copy .env.example .env   # then fill in the values
-.venv\Scripts\python.exe -m uvicorn app.main:app --reload --port 8000
+> Leave `COLAB_WHISPER_URL` empty to use a mock transcript — useful for testing
+> the Gemini + Notion stages without a GPU.
+
+## `backend/.env` keys
+
+```env
+SUPABASE_URL=
+SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+COLAB_WHISPER_URL=          # leave empty for mock transcript
+GEMINI_API_KEY=
+GEMINI_MODEL=gemini-2.5-flash
+NOTION_TOKEN=
+NOTION_DATABASE_ID=
+ALLOWED_ORIGINS=http://localhost:5173
 ```
 
-`backend/.env` keys: `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`,
-`COLAB_WHISPER_URL`, `GEMINI_API_KEY`, `GEMINI_MODEL`, `NOTION_TOKEN`,
-`NOTION_DATABASE_ID`, `ALLOWED_ORIGINS`.
+## `frontend/.env` keys
 
-### 2. Frontend
-```powershell
-cd frontend
-npm install
-copy .env.example .env   # set VITE_API_URL=http://localhost:8000
-npm run dev              # → http://localhost:5173
+```env
+VITE_SUPABASE_URL=
+VITE_SUPABASE_ANON_KEY=
+VITE_API_URL=http://localhost:8000
 ```
 
-### 3. Colab WhisperX
-Run `colab/meetmind-whisperx-server.ipynb` (all cells) → copy the ngrok URL →
-set `COLAB_WHISPER_URL` in `backend/.env`. If left empty, the worker returns a
-**mock transcript** (handy for wiring up Gemini + Notion without a GPU).
+## Pipeline stages
 
-## Fast end-to-end check (no web/auth)
-Prove the whole pipeline on local files:
-```powershell
-cd backend
-.venv\Scripts\python.exe scripts\run_pipeline_local.py --audio sample.mp3 --pdf slides.pdf
 ```
-Prints the created Notion page URL.
+pending → transcribing → analyzing → syncing → done | failed
+```
 
-## Constraints
-- Audio: English, `.mp3/.m4a/.wav`, ≤ 60 min.
-- Slides: text-based `.pdf`, ≤ 50 pages.
-- Uploaded audio + PDF are **auto-deleted** from Storage after the Notion page is created.
+| Stage | What happens |
+|-------|--------------|
+| `transcribing` | Audio → WhisperX segments (Colab) or mock |
+| `analyzing` | Transcript + slides → Gemini structured JSON (summary + tasks) |
+| `syncing` | JSON → Notion page (Summary heading + per-person To-do blocks) |
+| `done` | Notion URL written to DB; audio + PDF deleted from Storage |
 
 ## API
 
-| Method | Path                      | Description                                  |
-|--------|---------------------------|----------------------------------------------|
-| GET    | `/health`                 | Health check                                 |
-| GET    | `/auth/callback`          | Google OAuth callback                        |
-| POST   | `/upload`                 | Upload `file` (audio) + `slides` (pdf), Bearer |
-| GET    | `/jobs/{id}/status`       | Poll status (+ `notion_url` when done)       |
-| GET    | `/jobs/{id}/transcript`   | Raw transcript when done                     |
-| GET    | `/jobs/{id}/result`       | `notion_url` + analysis JSON when done       |
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | `/health` | — | Health check |
+| GET | `/auth/callback` | — | Google OAuth callback |
+| POST | `/upload` | Bearer | Upload `file` (audio) + `slides` (PDF) |
+| GET | `/jobs/{id}/status` | Bearer | Poll status + `notion_url` when done |
+| GET | `/jobs/{id}/result` | Bearer | `notion_url` + full analysis JSON |
+| GET | `/jobs/{id}/transcript` | Bearer | Raw WhisperX transcript |
 
-Job status lifecycle: `pending → transcribing → analyzing → syncing → done | failed`.
+## Constraints
+
+- Audio: English, `.mp3/.m4a/.wav`, ≤ 60 min, low background noise
+- Slides: text-based `.pdf`, ≤ 50 pages
+- Audio + PDF are **auto-deleted** from Storage after the Notion page is created
