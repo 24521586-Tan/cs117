@@ -1,8 +1,7 @@
 # MeetMind
 
 Upload a meeting **recording + slide PDF** → get one **Notion page** with a
-Meeting Summary and a grouped To-do list (checkbox · deadline · verbatim quote ·
-source slide number).
+Meeting Summary and a grouped To-do list (checkbox · deadline · verbatim quote · source slide).
 
 ```
 audio (.mp3/.m4a/.wav)  ┐
@@ -10,81 +9,164 @@ audio (.mp3/.m4a/.wav)  ┐
 slides (.pdf)           ┘
 ```
 
-## Quick start
-
-**➜ [Full local run guide →  docs/e2e-local-run.md](docs/e2e-local-run.md)**
-
-Short version — after filling `backend/.env`:
-
-```powershell
-# CLI (no browser, no auth — fastest way to verify)
-cd backend
-.venv\Scripts\python.exe scripts\run_pipeline_local.py --audio meeting.mp3 --pdf slides.pdf
-# prints: ✅ Notion page: https://www.notion.so/…
-
-# Web UI
-cd backend && .venv\Scripts\python.exe -m uvicorn app.main:app --reload --port 8000
-cd frontend && npm run dev   # → http://localhost:5173
-```
-
 ## Stack
 
-| Layer    | Tech                                            |
-|----------|-------------------------------------------------|
-| Frontend | React 19 + Vite + TypeScript                    |
-| Backend  | FastAPI + BackgroundTasks (Python 3.13)         |
-| Auth/DB  | Supabase (Google OAuth, Postgres, Storage)      |
-| ASR      | WhisperX on Google Colab (GPU) via ngrok        |
-| LLM      | Google Gemini `gemini-2.5-flash`                |
-| Output   | Notion database page                            |
+| Layer    | Tech |
+|----------|------|
+| Frontend | React 19 + Vite + TypeScript |
+| Backend  | FastAPI + BackgroundTasks (Python 3.13) |
+| Auth/DB  | Supabase (Google OAuth, Postgres, Storage) |
+| ASR      | WhisperX on Google Colab (GPU) via ngrok |
+| LLM      | Google Gemini `gemini-2.5-flash` |
+| Output   | Notion database page |
 
-## Prerequisites
+---
 
-| What | Where |
-|------|-------|
-| Supabase project + `audio-files` bucket | <https://supabase.com> |
-| DB migrations applied (001 + 002) | Supabase → SQL Editor |
-| Gemini API key | <https://aistudio.google.com/app/apikey> |
-| Notion integration + database | [docs/notion-setup.md](docs/notion-setup.md) |
-| Colab WhisperX server *(optional)* | `colab/meetmind-whisperx-server.ipynb` |
+## Part 1 — One-time service setup
 
-> Leave `COLAB_WHISPER_URL` empty to use a mock transcript — useful for testing
-> the Gemini + Notion stages without a GPU.
+### 1.1 Supabase
 
-## `backend/.env` keys
+1. Create a project at <https://supabase.com>.
+2. **Storage bucket** — Dashboard → Storage → New bucket → name: `audio-files` → uncheck *Public* → Create.
+3. **Apply migrations** — Dashboard → SQL Editor, run in order:
+   - `db/migrations/001_create_profiles_and_jobs.sql`
+   - `db/migrations/002_add_pipeline_fields.sql`
+4. **Google OAuth** *(web path only)* — Authentication → Providers → Google → enable → paste Google OAuth Client ID + Secret. Callback URL: `http://localhost:8000/auth/callback`.
+5. **Collect keys** — Project Settings → API:
+   - `SUPABASE_URL` (Project URL)
+   - `SUPABASE_ANON_KEY` (anon/public)
+   - `SUPABASE_SERVICE_ROLE_KEY` (service_role — keep secret)
+
+### 1.2 Google Gemini API key
+
+Go to <https://aistudio.google.com/app/apikey> → **Create API key** → copy → `GEMINI_API_KEY`.
+
+### 1.3 Notion integration + database
+
+1. <https://www.notion.so/my-integrations> → **New integration** → copy the **Internal Integration Secret** → `NOTION_TOKEN`.
+2. In Notion, create a full-page database named e.g. `Meeting Notes` with exactly these columns:
+
+   | Column | Type |
+   |--------|------|
+   | `Name` | Title |
+   | `Date` | Date |
+   | `Attendees` | Multi-select |
+
+3. Open the database → **⋯** → **Connections** → add your integration. *(Skipping this causes `404 Object not found`.)*
+4. Copy the 32-char hex ID from the URL → `NOTION_DATABASE_ID`.
+
+### 1.4 Colab WhisperX server *(optional — skip for mock transcript)*
+
+1. Open `colab/meetmind-whisperx-server.ipynb` in Google Colab.
+2. Runtime → Change runtime type → **T4 GPU** → Save.
+3. Run all cells — copy the printed ngrok URL → `COLAB_WHISPER_URL`.
+4. Keep the Colab tab open while running jobs (URL changes each session).
+
+> **Skip this step** and leave `COLAB_WHISPER_URL` empty to use a mock transcript —
+> useful for testing the Gemini + Notion stages without a GPU.
+
+---
+
+## Part 2 — Install
+
+### Backend
+
+```powershell
+cd backend
+python -m venv .venv
+.venv\Scripts\pip install -r requirements.txt
+copy .env.example .env    # then fill in the values below
+```
+
+**`backend/.env`:**
 
 ```env
-SUPABASE_URL=
-SUPABASE_ANON_KEY=
-SUPABASE_SERVICE_ROLE_KEY=
+SUPABASE_URL=https://xxxx.supabase.co
+SUPABASE_ANON_KEY=eyJhbGci...
+SUPABASE_SERVICE_ROLE_KEY=eyJhbGci...
+
 COLAB_WHISPER_URL=          # leave empty for mock transcript
-GEMINI_API_KEY=
+GEMINI_API_KEY=AIzaSy...
 GEMINI_MODEL=gemini-2.5-flash
-NOTION_TOKEN=
-NOTION_DATABASE_ID=
+NOTION_TOKEN=ntn_xxxx...
+NOTION_DATABASE_ID=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ALLOWED_ORIGINS=http://localhost:5173
 ```
 
-## `frontend/.env` keys
+### Frontend
+
+```powershell
+cd frontend
+npm install
+copy .env.example .env
+```
+
+**`frontend/.env`:**
 
 ```env
-VITE_SUPABASE_URL=
-VITE_SUPABASE_ANON_KEY=
+VITE_SUPABASE_URL=https://xxxx.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJhbGci...
 VITE_API_URL=http://localhost:8000
 ```
+
+---
+
+## Part 3 — Run
+
+### Option A — CLI (no browser, no auth — fastest)
+
+```powershell
+cd backend
+.venv\Scripts\python.exe scripts\run_pipeline_local.py --audio meeting.mp3 --pdf slides.pdf
+```
+
+Expected output:
+```
+→ Uploading audio for transcription…
+→ Transcribing (WhisperX / mock)…
+→ Extracting slides (markitdown)…
+→ Analyzing with Gemini…
+→ Creating Notion page…
+
+✅ Notion page: https://www.notion.so/…
+```
+
+### Option B — Web UI
+
+**Terminal 1:**
+```powershell
+cd backend
+.venv\Scripts\python.exe -m uvicorn app.main:app --reload --port 8000
+```
+
+**Terminal 2:**
+```powershell
+cd frontend
+npm run dev    # → http://localhost:5173
+```
+
+**Flow:** Sign in → drop audio file → pick slide PDF → **Bắt đầu phân tích** → watch stages → **Mở trang Notion**.
+
+---
+
+## Part 4 — Troubleshooting
+
+| Symptom | Fix |
+|---------|-----|
+| `GEMINI_API_KEY is not set` | Fill key in `backend/.env`; restart uvicorn |
+| `NOTION_TOKEN / NOTION_DATABASE_ID not set` | Fill Notion keys in `backend/.env` |
+| Notion `404 Object not found` | Database → ⋯ → Connections → add the integration |
+| Job stuck at `transcribing` | Colab session timed out — re-run cells, copy new URL, update `.env` |
+| Slides text empty | PDF is image-only (scanned) — only text-based PDFs are supported |
+| `slide_path` column not found | Apply `db/migrations/002_add_pipeline_fields.sql` in Supabase SQL Editor |
+
+---
 
 ## Pipeline stages
 
 ```
 pending → transcribing → analyzing → syncing → done | failed
 ```
-
-| Stage | What happens |
-|-------|--------------|
-| `transcribing` | Audio → WhisperX segments (Colab) or mock |
-| `analyzing` | Transcript + slides → Gemini structured JSON (summary + tasks) |
-| `syncing` | JSON → Notion page (Summary heading + per-person To-do blocks) |
-| `done` | Notion URL written to DB; audio + PDF deleted from Storage |
 
 ## API
 
