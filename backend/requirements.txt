@@ -6,6 +6,13 @@ python-dotenv==1.2.2
 httpx==0.28.1
 pydantic-settings==2.14.1
 
+# Local transcription (faster-whisper = CTranslate2 Whisper backend).
+# GPU users also need the CUDA runtime libs below; on CPU they are harmless/unused.
+faster-whisper==1.1.1
+nvidia-cuda-runtime-cu12==12.4.127
+nvidia-cublas-cu12==12.4.5.8
+nvidia-cudnn-cu12==9.1.0.70
+
 # Meeting analysis pipeline
 markitdown[pdf]==0.1.1
 pypdf==5.1.0

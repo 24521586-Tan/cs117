@@ -2,9 +2,9 @@
 
     python scripts/run_pipeline_local.py --audio meeting.mp3 --pdf slides.pdf
 
-Reuses the same workers as the API. Audio is uploaded to Supabase Storage only so
-the Colab WhisperX server can fetch it via a signed URL (skipped when
-COLAB_WHISPER_URL is unset -> mock transcript). Prints the created Notion URL.
+Reuses the same workers as the API. Audio is uploaded to Supabase Storage so the
+transcribe step can fetch it the same way the API does, then transcribed locally
+with faster-whisper (set WHISPER_MODEL=mock to skip ASR). Prints the Notion URL.
 """
 
 import argparse
@@ -50,7 +50,7 @@ def main() -> int:
     )
 
     try:
-        print("→ Transcribing (WhisperX / mock)…")
+        print("→ Transcribing (faster-whisper / mock)…")
         transcript = transcribe(audio_path)
 
         print("→ Extracting slides (markitdown)…")

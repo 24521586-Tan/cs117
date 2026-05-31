@@ -5,7 +5,7 @@ Meeting Summary and a grouped To-do list (checkbox · deadline · verbatim quote
 
 ```
 audio (.mp3/.m4a/.wav)  ┐
-                         ├─► WhisperX → Gemini → Notion page
+                         ├─► faster-whisper → Gemini → Notion page
 slides (.pdf)           ┘
 ```
 
@@ -16,7 +16,7 @@ slides (.pdf)           ┘
 | Frontend | React 19 + Vite + TypeScript |
 | Backend  | FastAPI + BackgroundTasks (Python 3.13) |
 | Auth/DB  | Supabase (Google OAuth, Postgres, Storage) |
-| ASR      | WhisperX on Google Colab (GPU) via ngrok |
+| ASR      | faster-whisper (local, GPU via CUDA or CPU) |
 | LLM      | Google Gemini `gemini-2.5-flash` |
 | Output   | Notion database page |
 
@@ -55,15 +55,16 @@ Go to <https://aistudio.google.com/app/apikey> → **Create API key** → copy �
 3. Open the database → **⋯** → **Connections** → add your integration. *(Skipping this causes `404 Object not found`.)*
 4. Copy the 32-char hex ID from the URL → `NOTION_DATABASE_ID`.
 
-### 1.4 Colab WhisperX server *(optional — skip for mock transcript)*
+### 1.4 Transcription — runs locally (no extra service)
 
-1. Open `colab/meetmind-whisperx-server.ipynb` in Google Colab.
-2. Runtime → Change runtime type → **T4 GPU** → Save.
-3. Run all cells — copy the printed ngrok URL → `COLAB_WHISPER_URL`.
-4. Keep the Colab tab open while running jobs (URL changes each session).
+Transcription uses **faster-whisper** in-process; nothing to set up here.
 
-> **Skip this step** and leave `COLAB_WHISPER_URL` empty to use a mock transcript —
-> useful for testing the Gemini + Notion stages without a GPU.
+- **GPU (NVIDIA):** auto-detected. Default `WHISPER_MODEL=large-v2`,
+  `WHISPER_COMPUTE_TYPE=int8_float16` (~3 GB VRAM; use `float16` for ~4.5 GB if you
+  prefer). A 60-min clip transcribes in roughly 5–10 min.
+- **CPU only:** set `WHISPER_DEVICE=cpu` and a smaller `WHISPER_MODEL` (e.g. `small`);
+  `large-*` on CPU is impractically slow.
+- **No transcription (test Gemini + Notion only):** set `WHISPER_MODEL=mock`.
 
 ---
 
@@ -85,7 +86,9 @@ SUPABASE_URL=https://xxxx.supabase.co
 SUPABASE_ANON_KEY=eyJhbGci...
 SUPABASE_SERVICE_ROLE_KEY=eyJhbGci...
 
-COLAB_WHISPER_URL=          # leave empty for mock transcript
+WHISPER_MODEL=large-v2      # tiny|base|small|medium|large-v2|large-v3|mock
+WHISPER_DEVICE=auto         # auto|cuda|cpu
+WHISPER_COMPUTE_TYPE=int8_float16   # cuda: float16/int8_float16; cpu forced to int8
 GEMINI_API_KEY=AIzaSy...
 GEMINI_MODEL=gemini-2.5-flash
 NOTION_TOKEN=ntn_xxxx...
@@ -156,7 +159,8 @@ npm run dev    # → http://localhost:5173
 | `GEMINI_API_KEY is not set` | Fill key in `backend/.env`; restart uvicorn |
 | `NOTION_TOKEN / NOTION_DATABASE_ID not set` | Fill Notion keys in `backend/.env` |
 | Notion `404 Object not found` | Database → ⋯ → Connections → add the integration |
-| Job stuck at `transcribing` | Colab session timed out — re-run cells, copy new URL, update `.env` |
+| Job stuck/slow at `transcribing` | CPU + large model is very slow — set `WHISPER_DEVICE=cpu` + `WHISPER_MODEL=small`, or use a GPU |
+| `Library cudnn_ops64_9.dll is not found` / CUDA errors | GPU libs missing — `pip install -r requirements.txt` (installs `nvidia-cudnn-cu12`), or fall back to `WHISPER_DEVICE=cpu` |
 | Slides text empty | PDF is image-only (scanned) — only text-based PDFs are supported |
 | `slide_path` column not found | Apply `db/migrations/002_add_pipeline_fields.sql` in Supabase SQL Editor |
 

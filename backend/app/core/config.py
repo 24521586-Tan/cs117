@@ -8,8 +8,11 @@ class Settings(BaseSettings):
     SUPABASE_ANON_KEY: str
     SUPABASE_SERVICE_ROLE_KEY: str
 
-    # WhisperX transcription server (Colab + ngrok). Empty => mock transcript.
-    COLAB_WHISPER_URL: str = ""
+    # Local faster-whisper transcription. WHISPER_MODEL="mock" => skip ASR, return
+    # a mock transcript (useful for testing Gemini + Notion without loading a model).
+    WHISPER_MODEL: str = "large-v2"          # whisper model size, or "mock"
+    WHISPER_DEVICE: str = "auto"             # auto | cuda | cpu
+    WHISPER_COMPUTE_TYPE: str = "int8_float16"  # cuda: float16/int8_float16; cpu forced to int8
 
     # Google Gemini (meeting analysis)
     GEMINI_API_KEY: str = ""
