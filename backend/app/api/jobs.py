@@ -31,12 +31,42 @@ def _get_job(job_id: str, user_id: str):
     return rows[0]
 
 
+@router.get("")
+async def list_jobs(user=Depends(get_current_user)):
+    """All of the user's jobs, newest first — powers the history page."""
+    sb = get_supabase()
+    rows = (
+        sb.table("jobs")
+        .select("id,status,progress,notion_url,error,created_at,analysis")
+        .eq("user_id", user.id)
+        .order("created_at", desc=True)
+        .limit(100)
+        .execute()
+        .data
+    )
+    jobs = []
+    for r in rows:
+        analysis = r.get("analysis")
+        title = analysis.get("title") if isinstance(analysis, dict) else None
+        jobs.append({
+            "job_id": r["id"],
+            "status": r["status"],
+            "progress": r.get("progress") or 0,
+            "notion_url": r.get("notion_url"),
+            "error": r.get("error"),
+            "created_at": r.get("created_at"),
+            "title": title,
+        })
+    return {"jobs": jobs}
+
+
 @router.get("/{job_id}/status")
 async def get_job_status(job_id: str, user=Depends(get_current_user)):
     job = _get_job(job_id, user.id)
     return {
         "job_id": job["id"],
         "status": job["status"],
+        "progress": job.get("progress") or 0,
         "notion_url": job.get("notion_url"),
         "error": job.get("error"),
     }

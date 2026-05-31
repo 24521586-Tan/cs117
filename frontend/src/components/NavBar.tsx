@@ -36,6 +36,14 @@ export default function NavBar({ showDownload, onDownload }: NavBarProps) {
         </div>
         MeetMind
       </a>
+
+      <a href="/jobs" style={{ marginLeft: 8, padding: "8px 14px", fontFamily: "'Google Sans', sans-serif", fontSize: 14, fontWeight: 500, color: "var(--gray-700)", textDecoration: "none", borderRadius: 6 }}
+        onMouseEnter={e => (e.currentTarget.style.background = "var(--gray-100)")}
+        onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+      >
+        Lịch sử
+      </a>
+
       <div style={{ flex: 1 }} />
 
       {showDownload && (

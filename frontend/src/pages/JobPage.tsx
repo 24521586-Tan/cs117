@@ -8,7 +8,7 @@ const POLL_MS = 3000;
 
 // Pipeline stages, in order. Index is derived from the job status.
 const STEPS = [
-  "Tạo bản ghi lời nói (WhisperX)",
+  "Tạo bản ghi lời nói (faster-whisper)",
   "Phân tích nội dung (Gemini)",
   "Đồng bộ sang Notion",
 ];
@@ -23,6 +23,8 @@ const STATUS_STEP: Record<string, number> = {
 export default function JobPage() {
   const { id } = useParams<{ id: string }>();
   const [status, setStatus] = useState<string>("pending");
+  const [progress, setProgress] = useState(0);
+  const [disconnected, setDisconnected] = useState(false);
   const [notionUrl, setNotionUrl] = useState<string | null>(null);
   const [elapsed, setElapsed] = useState(0);
   const [error, setError] = useState("");
@@ -43,9 +45,23 @@ export default function JobPage() {
     try {
       const token = await getToken();
       const res = await fetch(`${API}/jobs/${id}/status`, { headers: { Authorization: `Bearer ${token}` } });
-      if (!res.ok) throw new Error("Lỗi khi kiểm tra trạng thái");
+
+      // 404 = wrong/removed job → terminal. Other non-2xx = treat as a transient
+      // server hiccup and keep polling (the job runs server-side regardless).
+      if (res.status === 404) {
+        stop();
+        setError("Không tìm thấy công việc này.");
+        return;
+      }
+      if (!res.ok) {
+        setDisconnected(true);
+        return;
+      }
+
       const data = await res.json();
+      setDisconnected(false);
       setStatus(data.status);
+      if (typeof data.progress === "number") setProgress(data.progress);
 
       if (data.status === "done") {
         stop();
@@ -54,9 +70,10 @@ export default function JobPage() {
         stop();
         setError(data.error || "Phân tích thất bại. Vui lòng thử lại.");
       }
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Lỗi không xác định");
-      stop();
+    } catch {
+      // Network blip / backend restart / wifi change — the job keeps running on the
+      // server. Don't kill the view; show a "reconnecting" hint and keep polling.
+      setDisconnected(true);
     }
   };
 
@@ -71,11 +88,23 @@ export default function JobPage() {
   const isDone = status === "done";
   const isFailed = status === "failed" || !!error;
 
+  // Warn before leaving while the job is still being processed.
+  useEffect(() => {
+    const inProgress = !isDone && !isFailed;
+    if (!inProgress) return;
+    const warn = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [isDone, isFailed]);
+
   return (
     <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
       <NavBar />
 
-      {!isDone && !isFailed && <ProcessingView status={status} elapsed={elapsed} />}
+      {!isDone && !isFailed && <ProcessingView status={status} elapsed={elapsed} progress={progress} disconnected={disconnected} />}
       {isFailed && <ErrorView message={error} />}
       {isDone && <DoneView notionUrl={notionUrl} jobId={id!} />}
     </div>
@@ -83,10 +112,11 @@ export default function JobPage() {
 }
 
 /* ── Processing view ── */
-function ProcessingView({ status, elapsed }: { status: string; elapsed: number }) {
+function ProcessingView({ status, elapsed, progress, disconnected }: { status: string; elapsed: number; progress: number; disconnected: boolean }) {
   const stepIndex = STATUS_STEP[status] ?? 0;
   const m = Math.floor(elapsed / 60);
   const s = elapsed % 60;
+  const isTranscribing = status === "transcribing" || status === "pending";
 
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "48px 24px", gap: 32 }}>
@@ -118,6 +148,12 @@ function ProcessingView({ status, elapsed }: { status: string; elapsed: number }
           <div style={{ fontSize: 14, color: "var(--gray-600)", marginTop: 8 }}>Có thể mất vài phút với bản ghi dài · Bạn có thể đóng tab</div>
         </div>
 
+        {disconnected && (
+          <div style={{ width: "100%", background: "var(--red-light)", color: "var(--red)", borderRadius: "var(--radius)", padding: "10px 16px", fontSize: 13, textAlign: "center" }}>
+            Mất kết nối tới máy chủ · đang thử lại… (công việc vẫn đang chạy trên máy chủ)
+          </div>
+        )}
+
         {/* Steps */}
         <div style={{ width: "100%", border: "1px solid var(--gray-200)", borderRadius: "var(--radius)", overflow: "hidden" }}>
           {STEPS.map((label, i) => {
@@ -130,11 +166,27 @@ function ProcessingView({ status, elapsed }: { status: string; elapsed: number }
                   {active && <svg viewBox="0 0 24 24" width="12" height="12" fill="white"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z" /></svg>}
                 </div>
                 <span style={{ flex: 1, color: done ? "var(--gray-600)" : active ? "var(--blue)" : "var(--gray-400)", fontWeight: active ? 500 : 400 }}>{label}</span>
-                {active && <span style={{ fontSize: 12, color: "var(--gray-600)" }}>{m}:{s.toString().padStart(2, "0")}</span>}
+                {active && (
+                  <span style={{ fontSize: 12, color: "var(--gray-600)", fontVariantNumeric: "tabular-nums" }}>
+                    {i === 0 && isTranscribing ? `${progress}%` : `${m}:${s.toString().padStart(2, "0")}`}
+                  </span>
+                )}
               </div>
             );
           })}
         </div>
+
+        {/* Transcription progress bar (the long stage) */}
+        {isTranscribing && (
+          <div style={{ width: "100%" }}>
+            <div style={{ height: 6, width: "100%", background: "var(--gray-200)", borderRadius: 999, overflow: "hidden" }}>
+              <div style={{ height: "100%", width: `${progress}%`, background: "var(--blue)", borderRadius: 999, transition: "width 0.4s ease" }} />
+            </div>
+            <div style={{ fontSize: 12, color: "var(--gray-600)", marginTop: 6, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
+              {progress}% · đã chờ {m}:{s.toString().padStart(2, "0")}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1,6 +1,7 @@
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AuthCallbackPage from "./pages/AuthCallbackPage";
+import HistoryPage from "./pages/HistoryPage";
 import JobPage from "./pages/JobPage";
 import LoginPage from "./pages/LoginPage";
 import UploadPage from "./pages/UploadPage";
@@ -16,6 +17,14 @@ function App() {
           element={
             <ProtectedRoute>
               <UploadPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/jobs"
+          element={
+            <ProtectedRoute>
+              <HistoryPage />
             </ProtectedRoute>
           }
         />
