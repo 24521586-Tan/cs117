@@ -150,6 +150,29 @@ npm run dev    # → http://localhost:5173
 
 **Flow:** Sign in → drop audio file → pick slide PDF → **Bắt đầu phân tích** → watch stages → **Mở trang Notion**.
 
+### Option C — Pipeline Evaluation (Đánh giá hiệu năng)
+
+Run the automated evaluation system on your test dataset to generate detailed quality metrics (RTF, WER, LLM-as-a-judge scores):
+
+1. **Prepare test files** under the `evaluation/` folder:
+   * Place audio files (`.mp3/.m4a/.wav`) in `evaluation/audios/` (e.g., `LEC1.mp3`).
+   * Place slide PDFs in `evaluation/slides/` (e.g., `LEC1.pdf`).
+   * Place ground truth text files in `evaluation/transcripts_ground_truth/` (e.g., `LEC1.txt`) to compute ASR Word Error Rate (WER).
+
+2. **Run the evaluation script** (from the `backend/` directory to load `.env` settings):
+   * Run evaluation on all test cases:
+     ```bash
+     cd backend
+     python ../evaluation/run_eval.py
+     ```
+   * Run evaluation on a specific test case (e.g., `LEC1`):
+     ```bash
+     cd backend
+     python ../evaluation/run_eval.py --file LEC1
+     ```
+
+3. **View the generated report** at `evaluation/evaluation_report.md` for the summary table, KPIs, and detailed LLM feedback.
+
 ---
 
 ## Part 4 — Troubleshooting
