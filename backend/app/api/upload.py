@@ -2,7 +2,9 @@ import re
 import unicodedata
 import uuid
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, UploadFile
+from typing import Optional
+
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, UploadFile, File as FileParam
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.core.supabase import get_supabase
@@ -44,14 +46,16 @@ def _store(sb, user_id: str, upload: UploadFile, raw: bytes) -> str:
 
 @router.post("")
 async def upload_meeting(
-    file: UploadFile,
-    slides: UploadFile,
     background_tasks: BackgroundTasks,
     user=Depends(get_current_user),
+    file: Optional[UploadFile] = FileParam(None),
+    slides: Optional[UploadFile] = FileParam(None),
 ):
-    if file.content_type not in ALLOWED_AUDIO:
+    if not file and not slides:
+        raise HTTPException(status_code=422, detail="Cần ít nhất 1 file (audio hoặc PDF).")
+    if file and file.content_type not in ALLOWED_AUDIO:
         raise HTTPException(status_code=422, detail="Audio must be .mp3 / .m4a / .wav")
-    if slides.content_type not in ALLOWED_PDF:
+    if slides and slides.content_type not in ALLOWED_PDF:
         raise HTTPException(status_code=422, detail="Slides must be a .pdf file")
 
     sb = get_supabase()
@@ -59,17 +63,21 @@ async def upload_meeting(
     # Ensure profile row exists (foreign key required before inserting job)
     sb.table("profiles").upsert({"id": user.id, "email": user.email}, on_conflict="id").execute()
 
-    audio_path = _store(sb, user.id, file, await file.read())
-    slide_path = _store(sb, user.id, slides, await slides.read())
+    audio_path = _store(sb, user.id, file, await file.read()) if file else None
+    slide_path = _store(sb, user.id, slides, await slides.read()) if slides else None
+
+    job_data: dict = {
+        "user_id": user.id,
+        "status": "pending",
+    }
+    if audio_path:
+        job_data["file_path"] = audio_path
+    if slide_path:
+        job_data["slide_path"] = slide_path
 
     job = (
         sb.table("jobs")
-        .insert({
-            "user_id": user.id,
-            "status": "pending",
-            "file_path": audio_path,
-            "slide_path": slide_path,
-        })
+        .insert(job_data)
         .execute()
         .data[0]
     )

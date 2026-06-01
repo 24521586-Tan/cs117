@@ -39,7 +39,7 @@ export default function UploadPage() {
   };
 
   const handleUpload = async () => {
-    if (!audio || !pdf) return;
+    if (!audio && !pdf) return;
     setUploading(true);
     setError("");
 
@@ -48,8 +48,8 @@ export default function UploadPage() {
     if (!token) { setError("Phiên đăng nhập hết hạn."); setUploading(false); return; }
 
     const form = new FormData();
-    form.append("file", audio);
-    form.append("slides", pdf);
+    if (audio) form.append("file", audio);
+    if (pdf) form.append("slides", pdf);
 
     try {
       const res = await fetch(`${API}/upload`, {
@@ -80,7 +80,7 @@ export default function UploadPage() {
             Tải lên cuộc họp
           </h2>
           <p style={{ fontSize: 14, color: "var(--gray-600)" }}>
-            Ghi âm (.mp3 / .m4a / .wav · tối đa 60 phút) &amp; slide (.pdf · tối đa 50 trang) · Tiếng Anh
+            Ghi âm (.mp3 / .m4a / .wav · tối đa 60 phút) và/hoặc slide (.pdf · tối đa 50 trang) · Tiếng Anh
           </p>
         </div>
 
@@ -150,15 +150,15 @@ export default function UploadPage() {
 
           {/* Submit */}
           <button
-            disabled={!audio || !pdf || uploading}
+            disabled={(!audio && !pdf) || uploading}
             onClick={handleUpload}
             style={{
               display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
               padding: "10px 24px", width: "100%",
-              background: !audio || !pdf || uploading ? "var(--gray-400)" : "var(--blue)",
+              background: (!audio && !pdf) || uploading ? "var(--gray-400)" : "var(--blue)",
               color: "white", border: "none", borderRadius: 4,
               fontFamily: "'Google Sans', sans-serif", fontSize: 14, fontWeight: 500,
-              cursor: !audio || !pdf || uploading ? "not-allowed" : "pointer",
+              cursor: (!audio && !pdf) || uploading ? "not-allowed" : "pointer",
               transition: "background .2s",
             }}
           >
