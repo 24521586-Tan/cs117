@@ -1,3 +1,4 @@
+import io
 import re
 import unicodedata
 import uuid
@@ -6,6 +7,7 @@ from typing import Optional
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, UploadFile, File as FileParam
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from mutagen import File as MutagenFile
 
 from app.core.supabase import get_supabase
 from app.workers.pipeline import process_job
@@ -17,6 +19,7 @@ ALLOWED_AUDIO = {"audio/mpeg", "audio/mp4", "audio/x-m4a", "audio/m4a",
                  "audio/wav", "audio/x-wav", "audio/wave"}
 ALLOWED_PDF = {"application/pdf"}
 _BUCKET = "audio-files"
+MAX_AUDIO_MINUTES = 60
 
 
 def safe_filename(name: str) -> str:
@@ -63,8 +66,28 @@ async def upload_meeting(
     # Ensure profile row exists (foreign key required before inserting job)
     sb.table("profiles").upsert({"id": user.id, "email": user.email}, on_conflict="id").execute()
 
-    audio_path = _store(sb, user.id, file, await file.read()) if file else None
-    slide_path = _store(sb, user.id, slides, await slides.read()) if slides else None
+    # Read file bytes upfront so we can validate duration + store
+    audio_bytes = await file.read() if file else None
+    slide_bytes = await slides.read() if slides else None
+
+    # Validate audio duration
+    if audio_bytes:
+        try:
+            audio_info = MutagenFile(io.BytesIO(audio_bytes))
+            if audio_info and audio_info.info and audio_info.info.length:
+                duration_min = audio_info.info.length / 60
+                if duration_min > MAX_AUDIO_MINUTES:
+                    raise HTTPException(
+                        status_code=422,
+                        detail=f"File âm thanh dài {int(duration_min)} phút, vượt quá giới hạn {MAX_AUDIO_MINUTES} phút.",
+                    )
+        except HTTPException:
+            raise
+        except Exception:
+            pass  # Cannot read duration — accept file, pipeline will process it
+
+    audio_path = _store(sb, user.id, file, audio_bytes) if file and audio_bytes else None
+    slide_path = _store(sb, user.id, slides, slide_bytes) if slides and slide_bytes else None
 
     job_data: dict = {
         "user_id": user.id,

@@ -18,3 +18,4 @@ markitdown[pdf]==0.1.1
 pypdf==5.1.0
 google-genai==1.20.0
 notion-client==2.2.1
+mutagen==1.47.0

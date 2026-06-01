@@ -9,7 +9,7 @@ import io
 from markitdown import MarkItDown
 from pypdf import PdfReader
 
-MAX_PAGES = 50
+MAX_PAGES = 60
 
 _md = MarkItDown()
 

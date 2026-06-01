@@ -5,6 +5,7 @@ import { supabase } from "../lib/supabase";
 
 const API = import.meta.env.VITE_API_URL as string;
 const ALLOWED_AUDIO = ["audio/mpeg", "audio/mp4", "audio/x-m4a", "audio/m4a", "audio/wav", "audio/x-wav", "audio/wave"];
+const MAX_AUDIO_MINUTES = 60;
 
 function formatSize(bytes: number) {
   return (bytes / 1024 / 1024).toFixed(1) + " MB";
@@ -25,8 +26,25 @@ export default function UploadPage() {
       setError("Âm thanh chỉ hỗ trợ .mp3, .m4a hoặc .wav.");
       return;
     }
-    setError("");
-    setAudio(f);
+    // Check audio duration using HTML5 Audio API
+    const url = URL.createObjectURL(f);
+    const tempAudio = new Audio(url);
+    tempAudio.addEventListener("loadedmetadata", () => {
+      URL.revokeObjectURL(url);
+      const durationMin = tempAudio.duration / 60;
+      if (durationMin > MAX_AUDIO_MINUTES) {
+        setError(`File âm thanh dài ${Math.round(durationMin)} phút, vượt quá giới hạn ${MAX_AUDIO_MINUTES} phút.`);
+        return;
+      }
+      setError("");
+      setAudio(f);
+    });
+    tempAudio.addEventListener("error", () => {
+      URL.revokeObjectURL(url);
+      // Cannot read duration — accept file, backend will re-check
+      setError("");
+      setAudio(f);
+    });
   };
 
   const handlePdf = (f: File) => {
@@ -80,7 +98,7 @@ export default function UploadPage() {
             Tải lên cuộc họp
           </h2>
           <p style={{ fontSize: 14, color: "var(--gray-600)" }}>
-            Ghi âm (.mp3 / .m4a / .wav · tối đa 60 phút) và/hoặc slide (.pdf · tối đa 50 trang) · Tiếng Anh
+            Ghi âm (.mp3 / .m4a / .wav · tối đa 60 phút) và/hoặc slide (.pdf · tối đa 60 trang) · Tiếng Anh
           </p>
         </div>
 
