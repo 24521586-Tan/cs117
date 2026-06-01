@@ -231,7 +231,19 @@ def main():
             print("  [4/4] LLM Judge Scoring (Detailed criteria)...")
             judge_res = evaluate_analysis_with_llm(raw_transcript_text, slides_prompt, analysis)
             metrics["judge_scores"] = judge_res.model_dump()
-            print(f"        Scores: S-Comp={judge_res.summary_completeness.score} | S-Acc={judge_res.summary_accuracy.score} | T-Comp={judge_res.task_completeness.score} | T-Assign={judge_res.task_assignment_accuracy.score} | T-Quote={judge_res.task_quote_accuracy.score}")
+            
+            # Calculate combined scores (scaled to 1.0)
+            sc = judge_res.summary_completeness.score
+            sa = judge_res.summary_accuracy.score
+            tc = judge_res.task_completeness.score
+            ta = judge_res.task_assignment_accuracy.score
+            tq = judge_res.task_quote_accuracy.score
+            
+            summary_score = (sc + sa) / 10.0
+            task_score = (tc + ta + tq) / 15.0
+            
+            print(f"        Scores: S-Comp={sc} | S-Acc={sa} | T-Comp={tc} | T-Assign={ta} | T-Quote={tq}")
+            print(f"        Aggregated: Summary Score = {summary_score:.2f}/1.00 | Task Score = {task_score:.2f}/1.00")
             
         except Exception as e:
             print(f"  ❌ Error processing {name}: {str(e)}")
@@ -257,7 +269,7 @@ def write_report(results: list, report_path: Path):
         
         # Section 1: Summary Table
         f.write("## 1. Bảng Tổng Hợp Số Liệu (Summary Metrics)\n\n")
-        f.write("| Bài Test | Thời lượng Audio | Tốc độ Transcribe | RTF | WER (%) | Tóm tắt (Gemini) | Tóm tắt (Đầy đủ/Chính xác) | Giao việc (Đầy đủ/Đúng người/Trích dẫn) | Trạng thái |\n")
+        f.write("| Bài Test | Thời lượng Audio | RTF | WER (%) | Điểm Tóm tắt (1.0) | Tóm tắt (Đầy đủ/Chính xác) | Điểm Giao việc (1.0) | Giao việc (Đầy đủ/Đúng/Trích) | Trạng thái |\n")
         f.write("| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |\n")
         
         total_duration = 0.0
@@ -275,7 +287,6 @@ def write_report(results: list, report_path: Path):
         for r in results:
             name = r["name"]
             duration_str = f"{r['duration']/60:.2f} phút" if r["duration"] > 0 else "-"
-            trans_time_str = f"{r['transcribe_time']:.1f}s" if r["transcribe_time"] > 0 else "-"
             rtf_str = f"{r['rtf']:.3f}" if r["rtf"] > 0 else "-"
             
             wer_str = "-"
@@ -298,13 +309,16 @@ def write_report(results: list, report_path: Path):
                 ta = scores["task_assignment_accuracy"]["score"]
                 tq = scores["task_quote_accuracy"]["score"]
                 
+                summary_score = (sc + sa) / 10.0
+                task_score = (tc + ta + tq) / 15.0
+                
                 s_comp_scores.append(sc)
                 s_acc_scores.append(sa)
                 t_comp_scores.append(tc)
                 t_assign_scores.append(ta)
                 t_quote_scores.append(tq)
                 
-                f.write(f"| {name} | {duration_str} | {trans_time_str} | {rtf_str} | {wer_str} | {r['analyze_time']:.1f}s | {sc}/5 / {sa}/5 | {tc}/5 / {ta}/5 / {tq}/5 | ✅ Thành công |\n")
+                f.write(f"| {name} | {duration_str} | {rtf_str} | {wer_str} | **{summary_score:.2f}** | {sc:.1f}/5 / {sa:.1f}/5 | **{task_score:.2f}** | {tc:.1f}/5 / {ta:.1f}/5 / {tq:.1f}/5 | ✅ Thành công |\n")
         
         f.write("\n")
         
@@ -326,13 +340,18 @@ def write_report(results: list, report_path: Path):
             avg_ta = sum(t_assign_scores) / len(t_assign_scores)
             avg_tq = sum(t_quote_scores) / len(t_quote_scores)
             
+            avg_summary_score = (avg_sc + avg_sa) / 10.0
+            avg_task_score = (avg_tc + avg_ta + avg_tq) / 15.0
+            
             f.write(f"- **Đánh giá chất lượng Tóm tắt (Summary Quality):**\n")
+            f.write(f"  - **Điểm Tóm tắt Tổng hợp (Avg Summary Score): {avg_summary_score:.2f} / 1.00**\n")
             f.write(f"  - Độ đầy đủ (Completeness): {avg_sc:.2f} / 5.0\n")
             f.write(f"  - Độ chính xác thông tin (Factual Accuracy): {avg_sa:.2f} / 5.0\n")
             f.write(f"- **Đánh giá chất lượng Giao việc (Task Assignment Quality):**\n")
-            f.write(f"  - Độ đầy đủ của task (Task Completeness - có sót việc không): {avg_tc:.2f} / 5.0\n")
-            f.write(f"  - Độ chính xác phân vai (Task Assignment Accuracy - giao đúng người không): {avg_ta:.2f} / 5.0\n")
-            f.write(f"  - Độ chính xác trích dẫn (Task Quote Accuracy - quote có chuẩn không): {avg_tq:.2f} / 5.0\n\n")
+            f.write(f"  - **Điểm Giao việc Tổng hợp (Avg Task Score): {avg_task_score:.2f} / 1.00**\n")
+            f.write(f"  - Độ đầy đủ của task (Task Completeness): {avg_tc:.2f} / 5.0\n")
+            f.write(f"  - Độ chính xác phân vai (Task Assignment Accuracy): {avg_ta:.2f} / 5.0\n")
+            f.write(f"  - Độ chính xác trích dẫn (Task Quote Accuracy): {avg_tq:.2f} / 5.0\n\n")
         
         # Section 3: Detailed Feedback per test case
         f.write("## 3. Chi Tiết Đánh Giá Từng Mẫu Thử (Detailed Evaluation)\n\n")
@@ -343,26 +362,39 @@ def write_report(results: list, report_path: Path):
             name = r["name"]
             scores = r["judge_scores"]
             
+            sc = scores["summary_completeness"]["score"]
+            sa = scores["summary_accuracy"]["score"]
+            tc = scores["task_completeness"]["score"]
+            ta = scores["task_assignment_accuracy"]["score"]
+            tq = scores["task_quote_accuracy"]["score"]
+            
+            summary_score = (sc + sa) / 10.0
+            task_score = (tc + ta + tq) / 15.0
+            
             f.write(f"### Mẫu: {name}\n")
             f.write(f"- **Thời lượng:** {r['duration']/60:.2f} phút | **Thời gian chạy ASR:** {r['transcribe_time']:.1f}s | **Thời gian phân tích:** {r['analyze_time']:.1f}s\n")
             if r["wer"] is not None:
                 f.write(f"- **Tỷ lệ lỗi từ (WER):** {r['wer']*100:.2f}%\n")
             f.write("- **Chi tiết chấm điểm từ LLM Trọng Tài (Gemini 2.5):**\n\n")
             
-            f.write(f"  * **Tóm tắt - Độ đầy đủ (Summary Completeness) - {scores['summary_completeness']['score']}/5:**\n")
+            f.write(f"  * **Tóm tắt - Độ đầy đủ (Summary Completeness) - {sc}/5:**\n")
             f.write(f"    > {scores['summary_completeness']['explanation']}\n\n")
             
-            f.write(f"  * **Tóm tắt - Độ chính xác (Summary Accuracy) - {scores['summary_accuracy']['score']}/5:**\n")
+            f.write(f"  * **Tóm tắt - Độ chính xác (Summary Accuracy) - {sa}/5:**\n")
             f.write(f"    > {scores['summary_accuracy']['explanation']}\n\n")
             
-            f.write(f"  * **Giao việc - Độ đầy đủ (Task Completeness) - {scores['task_completeness']['score']}/5:**\n")
+            f.write(f"  * 📊 **Điểm Tóm tắt Tổng hợp (Summary Score): {summary_score:.2f} / 1.00**\n\n")
+            
+            f.write(f"  * **Giao việc - Độ đầy đủ (Task Completeness) - {tc}/5:**\n")
             f.write(f"    > {scores['task_completeness']['explanation']}\n\n")
             
-            f.write(f"  * **Giao việc - Đúng vai (Task Assignment Accuracy) - {scores['task_assignment_accuracy']['score']}/5:**\n")
+            f.write(f"  * **Giao việc - Đúng vai (Task Assignment Accuracy) - {ta}/5:**\n")
             f.write(f"    > {scores['task_assignment_accuracy']['explanation']}\n\n")
             
-            f.write(f"  * **Giao việc - Khớp trích dẫn (Task Quote Accuracy) - {scores['task_quote_accuracy']['score']}/5:**\n")
+            f.write(f"  * **Giao việc - Khớp trích dẫn (Task Quote Accuracy) - {tq}/5:**\n")
             f.write(f"    > {scores['task_quote_accuracy']['explanation']}\n\n")
+            
+            f.write(f"  * 📊 **Điểm Giao việc Tổng hợp (Task Score): {task_score:.2f} / 1.00**\n\n")
             
             f.write(f"  * **Nhận xét chung:**\n")
             f.write(f"    > {scores['overall_comments']}\n\n")
