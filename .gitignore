@@ -5,3 +5,15 @@ __pycache__/
 
 # Env
 .env
+
+# Evaluation (ignore files but keep the folder structure)
+evaluation/audios/*
+!evaluation/audios/.gitkeep
+
+evaluation/slides/*
+!evaluation/slides/.gitkeep
+
+evaluation/transcripts_ground_truth/*
+!evaluation/transcripts_ground_truth/.gitkeep
+
+evaluation/evaluation_report.md
