@@ -8,6 +8,7 @@ from typing import Optional
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, UploadFile, File as FileParam
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from mutagen import File as MutagenFile
+from pypdf import PdfReader
 
 from app.core.supabase import get_supabase
 from app.workers.pipeline import process_job
@@ -20,6 +21,7 @@ ALLOWED_AUDIO = {"audio/mpeg", "audio/mp4", "audio/x-m4a", "audio/m4a",
 ALLOWED_PDF = {"application/pdf"}
 _BUCKET = "audio-files"
 MAX_AUDIO_MINUTES = 60
+MAX_SLIDE_PAGES = 60
 
 
 def safe_filename(name: str) -> str:
@@ -57,18 +59,21 @@ async def upload_meeting(
     if not file and not slides:
         raise HTTPException(status_code=422, detail="Cần ít nhất 1 file (audio hoặc PDF).")
     if file and file.content_type not in ALLOWED_AUDIO:
-        raise HTTPException(status_code=422, detail="Audio must be .mp3 / .m4a / .wav")
+        raise HTTPException(status_code=422, detail="File âm thanh không hợp lệ. Chỉ hỗ trợ định dạng .mp3, .m4a hoặc .wav.")
     if slides and slides.content_type not in ALLOWED_PDF:
-        raise HTTPException(status_code=422, detail="Slides must be a .pdf file")
+        raise HTTPException(status_code=422, detail="File slide không hợp lệ. Chỉ hỗ trợ định dạng .pdf.")
 
     sb = get_supabase()
 
     # Ensure profile row exists (foreign key required before inserting job)
     sb.table("profiles").upsert({"id": user.id, "email": user.email}, on_conflict="id").execute()
 
-    # Read file bytes upfront so we can validate duration + store
+    # Read file bytes upfront so we can validate before storing
     audio_bytes = await file.read() if file else None
     slide_bytes = await slides.read() if slides else None
+
+    # ── Collect ALL validation errors so the user sees every issue at once ──
+    errors: list[str] = []
 
     # Validate audio duration
     if audio_bytes:
@@ -77,17 +82,48 @@ async def upload_meeting(
             if audio_info and audio_info.info and audio_info.info.length:
                 duration_min = audio_info.info.length / 60
                 if duration_min > MAX_AUDIO_MINUTES:
-                    raise HTTPException(
-                        status_code=422,
-                        detail=f"File âm thanh dài {int(duration_min)} phút, vượt quá giới hạn {MAX_AUDIO_MINUTES} phút.",
+                    errors.append(
+                        f"File âm thanh dài {int(duration_min)} phút, vượt quá giới hạn {MAX_AUDIO_MINUTES} phút."
                     )
-        except HTTPException:
-            raise
         except Exception:
             pass  # Cannot read duration — accept file, pipeline will process it
 
-    audio_path = _store(sb, user.id, file, audio_bytes) if file and audio_bytes else None
-    slide_path = _store(sb, user.id, slides, slide_bytes) if slides and slide_bytes else None
+    # Validate PDF page count
+    if slide_bytes:
+        try:
+            reader = PdfReader(io.BytesIO(slide_bytes))
+            page_count = len(reader.pages)
+            if page_count > MAX_SLIDE_PAGES:
+                errors.append(
+                    f"File PDF có {page_count} trang, vượt quá giới hạn {MAX_SLIDE_PAGES} trang."
+                )
+        except Exception:
+            pass  # Cannot read pages — accept file, pipeline will re-check
+
+    # Return all errors at once
+    if errors:
+        raise HTTPException(status_code=422, detail="\n".join(errors))
+
+    # ── Store files to Supabase Storage ──
+    try:
+        audio_path = _store(sb, user.id, file, audio_bytes) if file and audio_bytes else None
+    except Exception as exc:
+        if "413" in str(exc) or "too large" in str(exc).lower() or "maximum allowed size" in str(exc).lower():
+            raise HTTPException(
+                status_code=422,
+                detail="File âm thanh quá lớn, vượt quá dung lượng tối đa cho phép của hệ thống.",
+            )
+        raise HTTPException(status_code=500, detail=f"Lỗi lưu file âm thanh: {str(exc)[:200]}")
+
+    try:
+        slide_path = _store(sb, user.id, slides, slide_bytes) if slides and slide_bytes else None
+    except Exception as exc:
+        if "413" in str(exc) or "too large" in str(exc).lower() or "maximum allowed size" in str(exc).lower():
+            raise HTTPException(
+                status_code=422,
+                detail="File PDF quá lớn, vượt quá dung lượng tối đa cho phép của hệ thống.",
+            )
+        raise HTTPException(status_code=500, detail=f"Lỗi lưu file PDF: {str(exc)[:200]}")
 
     job_data: dict = {
         "user_id": user.id,

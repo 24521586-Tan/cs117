@@ -50,7 +50,7 @@ def process_job(job_id: str, audio_path: Optional[str], slide_path: Optional[str
             pdf_bytes = sb.storage.from_(_BUCKET).download(slide_path)
             slides = extract_slides(pdf_bytes)
             if slides["page_count"] > MAX_PAGES:
-                raise ValueError(f"Slide PDF has {slides['page_count']} pages (max {MAX_PAGES}).")
+                raise ValueError(f"File PDF có {slides['page_count']} trang, vượt quá giới hạn {MAX_PAGES} trang.")
             upd(slide_text=slides["markdown"])
             slides_prompt = pages_as_prompt(slides["pages"])
 

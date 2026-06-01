@@ -76,13 +76,31 @@ export default function UploadPage() {
         body: form,
       });
       if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.detail ?? "Upload thất bại");
+        let msg = "";
+        try {
+          const body = await res.json();
+          // FastAPI returns { detail: "..." } or { detail: [{msg: "..."}] }
+          if (typeof body.detail === "string") {
+            msg = body.detail;
+          } else if (Array.isArray(body.detail)) {
+            msg = body.detail.map((e: { msg?: string }) => e.msg).filter(Boolean).join("; ");
+          } else if (body.message) {
+            msg = body.message;
+          }
+        } catch {
+          // Response wasn't JSON — try plain text
+          try { msg = await res.text(); } catch { /* ignore */ }
+        }
+        throw new Error(msg || `Lỗi máy chủ (${res.status}). Vui lòng thử lại.`);
       }
       const { job_id } = await res.json();
       navigate(`/jobs/${job_id}`);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Upload thất bại");
+      if (err instanceof TypeError && err.message === "Failed to fetch") {
+        setError("Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng.");
+      } else {
+        setError(err instanceof Error ? err.message : "Upload thất bại. Vui lòng thử lại.");
+      }
       setUploading(false);
     }
   };
@@ -164,7 +182,26 @@ export default function UploadPage() {
             <input ref={pdfInput} type="file" accept=".pdf,application/pdf" style={{ display: "none" }} onChange={e => e.target.files?.[0] && handlePdf(e.target.files[0])} />
           </div>
 
-          {error && <p style={{ fontSize: 13, color: "var(--red)" }}>{error}</p>}
+          {error && (
+            <div style={{
+              background: "var(--red-light, #fce8e6)",
+              border: "1px solid var(--red, #d93025)",
+              borderRadius: "var(--radius, 8px)",
+              padding: "12px 16px",
+              display: "flex",
+              alignItems: "flex-start",
+              gap: 10,
+            }}>
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="var(--red, #d93025)" style={{ flexShrink: 0, marginTop: 1 }}>
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" />
+              </svg>
+              <div style={{ fontSize: 13, color: "var(--red, #d93025)", lineHeight: 1.5 }}>
+                {error.split("\n").map((line, i) => (
+                  <div key={i}>{error.includes("\n") ? `• ${line}` : line}</div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Submit */}
           <button
