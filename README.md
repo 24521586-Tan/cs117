@@ -152,26 +152,50 @@ npm run dev    # → http://localhost:5173
 
 ### Option C — Pipeline Evaluation (Đánh giá hiệu năng)
 
-Run the automated evaluation system on your test dataset to generate detailed quality metrics (RTF, WER, LLM-as-a-judge scores):
+Run the automated evaluation system to measure transcription accuracy, analysis quality, and task extraction correctness.
 
-1. **Prepare test files** under the `evaluation/` folder:
-   * Place audio files (`.mp3/.m4a/.wav`) in `evaluation/audios/` (e.g., `LEC1.mp3`).
-   * Place slide PDFs in `evaluation/slides/` (e.g., `LEC1.pdf`).
-   * Place ground truth text files in `evaluation/transcripts_ground_truth/` (e.g., `LEC1.txt`) to compute ASR Word Error Rate (WER).
+**1. Prepare test files** — place files in the `evaluation/` subfolders. File names must match across folders (e.g., `LEC1.mp3` ↔ `LEC1.pdf` ↔ `LEC1.txt`):
 
-2. **Run the evaluation script** (from the `backend/` directory to load `.env` settings):
-   * Run evaluation on all test cases:
-     ```bash
-     cd backend
-     python ../evaluation/run_eval.py
-     ```
-   * Run evaluation on a specific test case (e.g., `LEC1`):
-     ```bash
-     cd backend
-     python ../evaluation/run_eval.py --file LEC1
-     ```
+```
+evaluation/
+├── audios/                        # Required — audio recordings
+│   ├── LEC1.mp3
+│   └── meeting_abc.wav
+├── slides/                        # Optional — matching slide PDFs
+│   ├── LEC1.pdf
+│   └── meeting_abc.pdf
+├── transcripts_ground_truth/      # Optional — human-written transcripts for WER
+│   ├── LEC1.txt
+│   └── meeting_abc.txt
+└── run_eval.py                    # Evaluation script
+```
 
-3. **View the generated report** at `evaluation/evaluation_report.md` for the summary table, KPIs, and detailed LLM feedback.
+> **Note:** Slides and ground truth transcripts are optional per test case. If missing, the script skips slide extraction or WER calculation respectively.
+
+**2. Run the evaluation** (from the `backend/` directory so `.env` is loaded):
+
+```bash
+cd backend
+
+# Run all test cases
+python ../evaluation/run_eval.py
+
+# Run a single test case
+python ../evaluation/run_eval.py --file LEC1
+```
+
+**3. View the report** at `evaluation/evaluation_report.md`. Metrics measured:
+
+| Category | Metric | Method |
+|----------|--------|--------|
+| Speech-to-Text | **WER** (Word Error Rate) | Levenshtein distance vs ground truth text |
+| Speech-to-Text | **RTF** (Real-Time Factor) | Transcribe time ÷ audio duration |
+| LLM Analysis | **Summary Completeness** | LLM-as-a-Judge (1–5) |
+| LLM Analysis | **Summary Accuracy** | LLM-as-a-Judge (1–5) |
+| Task Extraction | **Task Completeness** | LLM-as-a-Judge (1–5) — any missing tasks? |
+| Task Extraction | **Task Assignment Accuracy** | LLM-as-a-Judge (1–5) — assigned to the right person? |
+| Task Extraction | **Task Quote Accuracy** | LLM-as-a-Judge (1–5) — quotes match transcript? |
+| System | **Success Rate** | % of test cases processed without errors |
 
 ---
 
