@@ -12,7 +12,7 @@ from typing import Optional
 
 
 AUDIO_EXTS = (".mp3", ".mp4", ".wav")  # .mp4 used as audio-only; faster-whisper extracts the audio track
-SLIDE_EXT = ".pdf"
+SLIDE_EXTS = (".pdf", ".txt", ".md")   # .txt/.md read directly as text; .pdf via markitdown+pypdf
 
 
 class Scenario(str, Enum):
@@ -72,8 +72,10 @@ def discover_cases(eval_dir: Path, file_filter: Optional[str] = None) -> list[Ev
             audio_by_stem[p.stem] = p
 
     pdf_by_stem: dict[str, Path] = {}
-    for p in slides_dir.glob(f"*{SLIDE_EXT}"):
-        pdf_by_stem[p.stem] = p
+    for ext in SLIDE_EXTS:
+        for p in slides_dir.glob(f"*{ext}"):
+            if p.stem not in pdf_by_stem:  # priority: pdf > txt > md
+                pdf_by_stem[p.stem] = p
 
     # Union of stems = all test cases
     all_stems = sorted(set(audio_by_stem) | set(pdf_by_stem))
@@ -82,7 +84,7 @@ def discover_cases(eval_dir: Path, file_filter: Optional[str] = None) -> list[Ev
     if file_filter:
         # Strip any known extension from the filter value
         filter_stem = file_filter
-        for ext in list(AUDIO_EXTS) + [SLIDE_EXT]:
+        for ext in list(AUDIO_EXTS) + list(SLIDE_EXTS):
             if filter_stem.endswith(ext):
                 filter_stem = filter_stem[: -len(ext)]
                 break

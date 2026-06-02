@@ -131,14 +131,24 @@ def _run_case(case, results_dir: Path) -> dict:
         if case.has_slides:
             print("  [2/4] Extracting slides…")
             t0 = time.time()
-            slides_data = extract_slides(case.pdf_path.read_bytes())
-            pages = slides_data["pages"]
-            slides_prompt = pages_as_prompt(pages)
-            t_ex = time.time() - t0
-            metrics["extract_time"] = t_ex
-            metrics["page_count"] = slides_data["page_count"]
-            metrics["slide_extract_coverage"] = slide_extract_coverage(pages)
-            print(f"      pages={slides_data['page_count']}  cov={metrics['slide_extract_coverage']:.0%}  t={t_ex:.1f}s")
+            ext = case.pdf_path.suffix.lower()
+            if ext in (".txt", ".md"):
+                # Plain text / markdown — read directly, no page-level parsing
+                slides_prompt = case.pdf_path.read_text(encoding="utf-8")
+                t_ex = time.time() - t0
+                metrics["extract_time"] = t_ex
+                # Coverage not meaningful for plain text (always 100%)
+                metrics["slide_extract_coverage"] = 1.0
+                print(f"      txt/md slide  chars={len(slides_prompt)}  t={t_ex:.2f}s")
+            else:
+                slides_data = extract_slides(case.pdf_path.read_bytes())
+                pages = slides_data["pages"]
+                slides_prompt = pages_as_prompt(pages)
+                t_ex = time.time() - t0
+                metrics["extract_time"] = t_ex
+                metrics["page_count"] = slides_data["page_count"]
+                metrics["slide_extract_coverage"] = slide_extract_coverage(pages)
+                print(f"      pages={slides_data['page_count']}  cov={metrics['slide_extract_coverage']:.0%}  t={t_ex:.1f}s")
         else:
             print("  [2/4] Slide extraction: skipped (audio-only)")
 
