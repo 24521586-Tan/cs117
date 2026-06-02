@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Optional
 
 
-AUDIO_EXTS = (".mp3", ".mp4")  # .mp4 used as audio-only; faster-whisper extracts the audio track
+AUDIO_EXTS = (".mp3", ".mp4", ".wav")  # .mp4 used as audio-only; faster-whisper extracts the audio track
 SLIDE_EXT = ".pdf"
 
 
