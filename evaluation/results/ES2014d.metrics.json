@@ -3,12 +3,12 @@
   "scenario": "both",
   "has_gt_transcript": true,
   "has_gt_analysis": false,
-  "transcribe_time": 606.5746343135834,
+  "transcribe_time": 581.165141582489,
   "duration": 2911.36,
-  "extract_time": 0.016263961791992188,
-  "analyze_time": 13.647710800170898,
-  "pipeline_total_time": 620.2386090755463,
-  "rtf": 0.2083475194800998,
+  "extract_time": 0.00648045539855957,
+  "analyze_time": 14.28442907333374,
+  "pipeline_total_time": 595.4560511112213,
+  "rtf": 0.1996198139640886,
   "wer": 0.37807881773399016,
   "page_count": null,
   "slide_extract_coverage": 1.0,
@@ -21,6 +21,28 @@
   "assignment_accuracy": null,
   "slide_attr_accuracy": null,
   "summary_kp_coverage": null,
-  "judge_scores": null,
-  "error": "503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}"
+  "judge_scores": {
+    "summary_completeness": {
+      "score": 4.0,
+      "explanation": "Bản tóm tắt đã nắm bắt được các chủ đề chính của cuộc họp như đánh giá thiết kế nguyên mẫu, chi phí sản xuất, vật liệu vỏ, tính năng (năng lượng động học, nhận dạng giọng nói) và các tiêu chí đánh giá. Tuy nhiên, nó thiếu một số chi tiết cụ thể về chi phí ban đầu (13.7 Euro), số tiền cần giảm (1.2 Euro) và các thay đổi chi tiết về nút bấm (ví dụ: 2 hình dạng đặc biệt, 2 màu đặc biệt). Cuộc thảo luận về việc sản phẩm có phù hợp với các sản phẩm khác của 'Real Reaction' hay không cũng có thể được làm rõ hơn."
+    },
+    "summary_accuracy": {
+      "score": 5.0,
+      "explanation": "Tất cả thông tin trong bản tóm tắt đều chính xác và được lấy trực tiếp từ bản ghi cuộc họp. Không có thông tin nào bịa đặt hoặc không có trong nguồn."
+    },
+    "task_completeness": {
+      "score": 5.0,
+      "explanation": "Tất cả các mục hành động rõ ràng và các nhiệm vụ ngụ ý quan trọng từ bản ghi cuộc họp đều đã được trích xuất đầy đủ."
+    },
+    "task_assignment_accuracy": {
+      "score": 5.0,
+      "explanation": "Tất cả các nhiệm vụ đều được gán cho 'Unassigned' (Chưa được phân công), điều này hoàn toàn chính xác vì không có tên cụ thể nào được đề cập trong bản ghi cho các nhiệm vụ này. Người nói thường dùng 'I'll' hoặc 'we'll' hoặc các hướng dẫn chung."
+    },
+    "task_quote_accuracy": {
+      "score": 5.0,
+      "explanation": "Tất cả các trích dẫn cho nhiệm vụ đều khớp chính xác với lời nói thực tế trong bản ghi. Ngay cả đối với nhiệm vụ cuối cùng, trích dẫn được cung cấp là nguyên văn từ bản ghi, mặc dù nhiệm vụ đó là một sự diễn giải từ một lời nhắc nhở."
+    },
+    "overall_comments": "Bản phân tích cuộc họp này có chất lượng rất tốt. Phần tóm tắt cung cấp một cái nhìn tổng quan toàn diện và chính xác về các chủ đề chính. Việc trích xuất nhiệm vụ và độ chính xác của trích dẫn là xuất sắc. Điểm duy nhất có thể cải thiện là bổ sung thêm một vài chi tiết cụ thể về số liệu chi phí và các thay đổi thiết kế chi tiết trong phần tóm tắt để tăng cường độ đầy đủ."
+  },
+  "error": null
 }

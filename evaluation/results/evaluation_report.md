@@ -1,5 +1,5 @@
 # Báo Cáo Đánh Giá Hiệu Năng — MeetMind (CS117)
-*Ngày đánh giá: 2026-06-02 20:56:49 | Tổng mẫu: 16*
+*Ngày đánh giá: 2026-06-02 21:23:04 | Tổng mẫu: 14*
 
 ## 1. Bảng Tổng Hợp (Summary Table)
 
@@ -12,24 +12,22 @@
 | ES2014a | 🎤 Audio Only | 19.2m | 0.194 | 34.9% | N/A | N/A | N/A | N/A | ✅ |
 | ES2014b | 🎤+📄 Both | 38.7m | 0.251 | 32.3% | 100.0% | N/A | N/A | N/A | ✅ |
 | ES2014c | 🎤+📄 Both | 37.9m | 0.257 | 30.6% | 100.0% | N/A | N/A | N/A | ✅ |
-| ES2014d | 🎤+📄 Both | 48.5m | 0.208 | 37.8% | 100.0% | N/A | N/A | N/A | ❌ 503 UNAVAILABLE. {'error': {'code': 503, |
+| ES2014d | 🎤+📄 Both | 48.5m | 0.200 | 37.8% | 100.0% | N/A | N/A | N/A | ✅ |
 | ES2015a | 🎤+📄 Both | 19.1m | 0.177 | 25.2% | 100.0% | N/A | N/A | N/A | ✅ |
 | ES2015b | 🎤+📄 Both | 38.2m | 0.204 | 31.0% | 100.0% | N/A | N/A | N/A | ✅ |
 | ES2015c | 🎤+📄 Both | 35.6m | 0.232 | 23.4% | 100.0% | N/A | N/A | N/A | ✅ |
 | ES2015d | 🎤+📄 Both | 32.2m | 0.275 | 34.3% | 100.0% | N/A | N/A | N/A | ✅ |
 | ES2016a | 🎤 Audio Only | 23.1m | 0.176 | 25.9% | N/A | N/A | N/A | N/A | ✅ |
-| ES2016b | 🎤+📄 Both | 40.2m | 0.181 | 21.2% | 100.0% | N/A | N/A | N/A | ❌ 503 UNAVAILABLE. {'error': {'code': 503, |
-| ES2016c | 🎤+📄 Both | 38.5m | 0.160 | 26.0% | 100.0% | N/A | N/A | N/A | ✅ |
-| ES2016d | 🎤+📄 Both | 25.4m | 0.163 | 46.0% | 100.0% | N/A | N/A | N/A | ✅ |
+| ES2016b | 🎤+📄 Both | 40.2m | 0.230 | 21.2% | 100.0% | N/A | N/A | N/A | ✅ |
 
 ## 2. Tiêu Chí Định Lượng (Quantitative Metrics)
 
-- **Tỷ lệ thành công (Success Rate):** 14/16 (87.5%)
+- **Tỷ lệ thành công (Success Rate):** 14/14 (100.0%)
 
 ### 2.1 Nhận dạng giọng nói (ASR)
-- **Avg RTF:** 0.405 (ví dụ: 1 phút audio mất 0.4 phút xử lý)
-- **Avg WER:** 30.5% (mục tiêu ≤ 15%)
-- **Tốc độ pipeline (60 phút audio):** ❌ FAIL (24.3 phút / 60 phút audio) (mục tiêu ≤ 10 phút)
+- **Avg RTF:** 0.402 (ví dụ: 1 phút audio mất 0.4 phút xử lý)
+- **Avg WER:** 29.5% (mục tiêu ≤ 15%)
+- **Tốc độ pipeline (60 phút audio):** ❌ FAIL (24.1 phút / 60 phút audio) (mục tiêu ≤ 10 phút)
 
 ### 2.2 Trích xuất slide
 - **Avg Slide Extraction Coverage:** 100.0% (mục tiêu ≥ 95%)
@@ -48,19 +46,19 @@
 
 *(Gemini đóng vai trọng tài, chấm điểm 1.0–5.0)*
 
-- **Summary Completeness (Độ đầy đủ tóm tắt):** 4.64 / 5.0
+- **Summary Completeness (Độ đầy đủ tóm tắt):** 4.61 / 5.0
 - **Summary Accuracy (Độ chính xác tóm tắt):** 5.00 / 5.0
 - **Task Completeness (Độ đầy đủ giao việc):** 4.82 / 5.0
 - **Task Assignment Accuracy (Đúng vai):** 4.82 / 5.0
-- **Task Quote Accuracy (Trích dẫn):** 4.89 / 5.0 *(N/A cho PDF-only)*
+- **Task Quote Accuracy (Trích dẫn):** 4.82 / 5.0 *(N/A cho PDF-only)*
 
 - **📊 Điểm Tóm Tắt Tổng Hợp:** 0.96 / 1.00
-- **📊 Điểm Giao Việc Tổng Hợp:** 0.97 / 1.00
+- **📊 Điểm Giao Việc Tổng Hợp:** 0.96 / 1.00
 
 ## 4. Phân Tích Theo Kịch Bản (Per-Scenario Breakdown)
 
 ### 🎤+📄 Both (12 mẫu)
-- Avg RTF: 0.410 | Avg WER: 30.5% | Avg Task F1: N/A
+- Avg RTF: 0.419 | Avg WER: 29.4% | Avg Task F1: N/A
 
 ### 🎤 Audio Only (2 mẫu)
 - Avg RTF: 0.185 | Avg WER: 30.4% | Avg Task F1: N/A
@@ -193,8 +191,21 @@
 
 ---
 
-### ❌ ES2014d
-> Lỗi: 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}
+### ES2014d — 🎤+📄 Both
+- Thời lượng: 48.5 phút | ASR: 581.2s | Slides: 0.0s | Gemini: 14.3s
+- WER: 37.81%
+- Slide Coverage: 100.0% (None trang)
+
+*Định lượng: N/A (không có ground-truth analysis)*
+
+**🤖 LLM Judge (Gemini):**
+- **Summary Completeness:** 4.0/5 — Bản tóm tắt đã nắm bắt được các chủ đề chính của cuộc họp như đánh giá thiết kế nguyên mẫu, chi phí sản xuất, vật liệu vỏ, tính năng (năng lượng động học, nhận dạng giọng nói) và các tiêu chí đánh giá. Tuy nhiên, nó thiếu một số chi tiết cụ thể về chi phí ban đầu (13.7 Euro), số tiền cần giảm (1.2 Euro) và các thay đổi chi tiết về nút bấm (ví dụ: 2 hình dạng đặc biệt, 2 màu đặc biệt). Cuộc thảo luận về việc sản phẩm có phù hợp với các sản phẩm khác của 'Real Reaction' hay không cũng có thể được làm rõ hơn.
+- **Summary Accuracy:** 5.0/5 — Tất cả thông tin trong bản tóm tắt đều chính xác và được lấy trực tiếp từ bản ghi cuộc họp. Không có thông tin nào bịa đặt hoặc không có trong nguồn.
+- **Task Completeness:** 5.0/5 — Tất cả các mục hành động rõ ràng và các nhiệm vụ ngụ ý quan trọng từ bản ghi cuộc họp đều đã được trích xuất đầy đủ.
+- **Task Assignment:** 5.0/5 — Tất cả các nhiệm vụ đều được gán cho 'Unassigned' (Chưa được phân công), điều này hoàn toàn chính xác vì không có tên cụ thể nào được đề cập trong bản ghi cho các nhiệm vụ này. Người nói thường dùng 'I'll' hoặc 'we'll' hoặc các hướng dẫn chung.
+- **Task Quote:** 5.0/5 — Tất cả các trích dẫn cho nhiệm vụ đều khớp chính xác với lời nói thực tế trong bản ghi. Ngay cả đối với nhiệm vụ cuối cùng, trích dẫn được cung cấp là nguyên văn từ bản ghi, mặc dù nhiệm vụ đó là một sự diễn giải từ một lời nhắc nhở.
+
+> Bản phân tích cuộc họp này có chất lượng rất tốt. Phần tóm tắt cung cấp một cái nhìn tổng quan toàn diện và chính xác về các chủ đề chính. Việc trích xuất nhiệm vụ và độ chính xác của trích dẫn là xuất sắc. Điểm duy nhất có thể cải thiện là bổ sung thêm một vài chi tiết cụ thể về số liệu chi phí và các thay đổi thiết kế chi tiết trong phần tóm tắt để tăng cường độ đầy đủ.
 
 ---
 
@@ -287,44 +298,21 @@
 
 ---
 
-### ❌ ES2016b
-> Lỗi: 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}
-
----
-
-### ES2016c — 🎤+📄 Both
-- Thời lượng: 38.5 phút | ASR: 370.1s | Slides: 0.0s | Gemini: 16.2s
-- WER: 25.98%
+### ES2016b — 🎤+📄 Both
+- Thời lượng: 40.2 phút | ASR: 553.8s | Slides: 0.0s | Gemini: 19.6s
+- WER: 21.20%
 - Slide Coverage: 100.0% (None trang)
 
 *Định lượng: N/A (không có ground-truth analysis)*
 
 **🤖 LLM Judge (Gemini):**
-- **Summary Completeness:** 5.0/5 — Bản tóm tắt đã nắm bắt đầy đủ tất cả các điểm chính của cuộc họp, bao gồm việc xem xét biên bản cuộc họp trước, các bài thuyết trình từ bộ phận Marketing, thiết kế giao diện người dùng và thiết kế công nghiệp, cũng như các quyết định quan trọng về nguồn năng lượng, vật liệu vỏ, giao diện người dùng và chip. Không có thông tin quan trọng nào bị bỏ lỡ.
-- **Summary Accuracy:** 5.0/5 — Tất cả thông tin trong bản tóm tắt đều chính xác và được trích xuất trực tiếp từ bản ghi cuộc họp. Không có bất kỳ thông tin nào bị thêm vào hoặc sai lệch so với nguồn.
-- **Task Completeness:** 5.0/5 — Tất cả các mục hành động được giao vào cuối cuộc họp đều đã được trích xuất đầy đủ. Các nhiệm vụ cho Ryan, Manuel, Karen và nhiệm vụ chung của Ryan và Manuel đều được ghi lại.
-- **Task Assignment:** 5.0/5 — Mỗi nhiệm vụ đều được gán chính xác cho người hoặc nhóm người chịu trách nhiệm, đúng như đã nêu trong bản ghi cuộc họp.
-- **Task Quote:** 5.0/5 — Các trích dẫn cho mỗi nhiệm vụ hoàn toàn khớp với lời nói thực tế trong bản ghi cuộc họp, không có sự thay đổi nào.
+- **Summary Completeness:** 5.0/5 — Tóm tắt đã bao gồm tất cả các điểm chính và quyết định quan trọng của cuộc họp. Nó đề cập đến việc xem xét các quyết định trước đó, các bài thuyết trình của Karina, Ryan và Manuel, các yêu cầu mới, các quyết định cuối cùng về tính năng và thiết kế, cũng như các bước tiếp theo.
+- **Summary Accuracy:** 5.0/5 — Tất cả thông tin trong bản tóm tắt đều chính xác và được lấy từ bản ghi cuộc họp và văn bản slide. Không có thông tin nào bịa đặt hay sai lệch.
+- **Task Completeness:** 5.0/5 — Tất cả các nhiệm vụ và hành động được giao rõ ràng trong cuộc họp đều đã được trích xuất đầy đủ. Các nhiệm vụ được đề cập trong slide 'After Meeting' cũng được bao gồm.
+- **Task Assignment:** 5.0/5 — Tất cả các nhiệm vụ đều được giao cho đúng người phụ trách dựa trên nội dung cuộc họp. Không có sự nhầm lẫn nào trong việc phân công.
+- **Task Quote:** 4.0/5 — Hầu hết các trích dẫn đều khớp chính xác với lời nói trong bản ghi. Tuy nhiên, có một nhiệm vụ của Project Manager ('Put minutes in project documents folder') có trích dẫn ('pm puts minutes in project documents folder') được lấy trực tiếp từ văn bản slide chứ không phải là lời nói thực tế trong cuộc họp. Điều này làm giảm điểm vì yêu cầu là 'verbatim quotes match the actual spoken words'.
 
-> Bản phân tích cuộc họp này có chất lượng rất cao. Tóm tắt đầy đủ, chính xác và bao quát tất cả các điểm thảo luận và quyết định quan trọng. Các nhiệm vụ được trích xuất hoàn chỉnh, gán đúng người và trích dẫn chính xác. Đây là một bản phân tích xuất sắc.
-
----
-
-### ES2016d — 🎤+📄 Both
-- Thời lượng: 25.4 phút | ASR: 248.0s | Slides: 0.0s | Gemini: 18.6s
-- WER: 45.97%
-- Slide Coverage: 100.0% (None trang)
-
-*Định lượng: N/A (không có ground-truth analysis)*
-
-**🤖 LLM Judge (Gemini):**
-- **Summary Completeness:** 4.5/5 — Bản tóm tắt đã nắm bắt được hầu hết các chủ đề chính và quyết định quan trọng của cuộc họp, bao gồm việc xem xét biên bản cuộc họp trước, trình bày nguyên mẫu, đánh giá dựa trên các tiêu chí, thảo luận về ngân sách và điều chỉnh thiết kế để phù hợp với ngân sách, cũng như đánh giá quy trình dự án. Tuy nhiên, nó có thể chi tiết hơn một chút về các tiêu chí đánh giá cụ thể (ví dụ: sự đổi mới công nghệ, thời trang trong điện tử) và quyết định không sử dụng nhận dạng giọng nói đã được đưa ra trong cuộc họp trước.
-- **Summary Accuracy:** 5.0/5 — Tất cả thông tin trong bản tóm tắt đều chính xác và có thể được xác minh từ bản ghi cuộc họp. Không có thông tin sai lệch hay bịa đặt nào được tìm thấy.
-- **Task Completeness:** 5.0/5 — Tất cả các mục hành động rõ ràng được đề cập trong bản ghi đã được trích xuất đầy đủ. Các nhiệm vụ như hoàn thành biên bản cuộc họp cuối cùng, chuẩn bị bảng câu hỏi tiếp theo và kiểm tra với sếp chính về các bước tiếp theo đều được ghi nhận.
-- **Task Assignment:** 5.0/5 — Các nhiệm vụ được giao cho 'Secretary' (Thư ký) là hoàn toàn chính xác. Người nói trong cuộc họp tự nhận mình sẽ thực hiện các nhiệm vụ này, và vai trò thư ký là phù hợp để xử lý các công việc hành chính và theo dõi này.
-- **Task Quote:** 5.0/5 — Các trích dẫn nguyên văn cho từng nhiệm vụ đều khớp chính xác với lời nói trong bản ghi cuộc họp. Không có sự sai lệch nào được tìm thấy.
-
-> Bản phân tích cuộc họp này có chất lượng rất cao. Tóm tắt đầy đủ, chính xác và các nhiệm vụ được trích xuất, phân công và trích dẫn một cách hoàn hảo. Đây là một bản phân tích xuất sắc.
+> Bản phân tích cuộc họp này có chất lượng rất tốt. Tóm tắt đầy đủ, chính xác và các nhiệm vụ được trích xuất gần như hoàn hảo. Điểm trừ nhỏ duy nhất là một trích dẫn nhiệm vụ được lấy từ slide thay vì lời nói thực tế. Nếu khắc phục được điểm này, chất lượng sẽ hoàn hảo.
 
 ---
 

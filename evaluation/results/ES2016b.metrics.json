@@ -3,12 +3,12 @@
   "scenario": "both",
   "has_gt_transcript": true,
   "has_gt_analysis": false,
-  "transcribe_time": 435.5228521823883,
+  "transcribe_time": 553.7632920742035,
   "duration": 2412.224,
-  "extract_time": 0.04572439193725586,
-  "analyze_time": 0.0,
-  "pipeline_total_time": 0.0,
-  "rtf": 0.18054826259186058,
+  "extract_time": 0.003125429153442383,
+  "analyze_time": 19.562071561813354,
+  "pipeline_total_time": 573.3284890651703,
+  "rtf": 0.22956545166377726,
   "wer": 0.21198067632850243,
   "page_count": null,
   "slide_extract_coverage": 1.0,
@@ -21,6 +21,28 @@
   "assignment_accuracy": null,
   "slide_attr_accuracy": null,
   "summary_kp_coverage": null,
-  "judge_scores": null,
-  "error": "503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}"
+  "judge_scores": {
+    "summary_completeness": {
+      "score": 5.0,
+      "explanation": "Tóm tắt đã bao gồm tất cả các điểm chính và quyết định quan trọng của cuộc họp. Nó đề cập đến việc xem xét các quyết định trước đó, các bài thuyết trình của Karina, Ryan và Manuel, các yêu cầu mới, các quyết định cuối cùng về tính năng và thiết kế, cũng như các bước tiếp theo."
+    },
+    "summary_accuracy": {
+      "score": 5.0,
+      "explanation": "Tất cả thông tin trong bản tóm tắt đều chính xác và được lấy từ bản ghi cuộc họp và văn bản slide. Không có thông tin nào bịa đặt hay sai lệch."
+    },
+    "task_completeness": {
+      "score": 5.0,
+      "explanation": "Tất cả các nhiệm vụ và hành động được giao rõ ràng trong cuộc họp đều đã được trích xuất đầy đủ. Các nhiệm vụ được đề cập trong slide 'After Meeting' cũng được bao gồm."
+    },
+    "task_assignment_accuracy": {
+      "score": 5.0,
+      "explanation": "Tất cả các nhiệm vụ đều được giao cho đúng người phụ trách dựa trên nội dung cuộc họp. Không có sự nhầm lẫn nào trong việc phân công."
+    },
+    "task_quote_accuracy": {
+      "score": 4.0,
+      "explanation": "Hầu hết các trích dẫn đều khớp chính xác với lời nói trong bản ghi. Tuy nhiên, có một nhiệm vụ của Project Manager ('Put minutes in project documents folder') có trích dẫn ('pm puts minutes in project documents folder') được lấy trực tiếp từ văn bản slide chứ không phải là lời nói thực tế trong cuộc họp. Điều này làm giảm điểm vì yêu cầu là 'verbatim quotes match the actual spoken words'."
+    },
+    "overall_comments": "Bản phân tích cuộc họp này có chất lượng rất tốt. Tóm tắt đầy đủ, chính xác và các nhiệm vụ được trích xuất gần như hoàn hảo. Điểm trừ nhỏ duy nhất là một trích dẫn nhiệm vụ được lấy từ slide thay vì lời nói thực tế. Nếu khắc phục được điểm này, chất lượng sẽ hoàn hảo."
+  },
+  "error": null
 }

@@ -1,16 +1,16 @@
 {
-  "generated_at": "2026-06-02 20:56:49",
-  "total_cases": 16,
+  "generated_at": "2026-06-02 21:23:04",
+  "total_cases": 14,
   "successful_cases": 14,
-  "success_rate": 0.875,
+  "success_rate": 1.0,
   "by_scenario": {
-    "both": 14,
+    "both": 12,
     "audio_only": 2
   },
   "asr": {
-    "avg_rtf": 0.40475036781002255,
-    "avg_wer": 0.3046766515777655,
-    "projected_60min_pipeline_minutes": 24.29,
+    "avg_rtf": 0.40154998911434014,
+    "avg_wer": 0.29542976018272965,
+    "projected_60min_pipeline_minutes": 24.09,
     "speed_target_pass": false
   },
   "slide": {
@@ -27,10 +27,10 @@
     "avg_kp_coverage": null
   },
   "llm_judge": {
-    "avg_summary_completeness": 4.642857142857143,
+    "avg_summary_completeness": 4.607142857142857,
     "avg_summary_accuracy": 5.0,
     "avg_task_completeness": 4.821428571428571,
     "avg_task_assignment_accuracy": 4.821428571428571,
-    "avg_task_quote_accuracy": 4.892857142857143
+    "avg_task_quote_accuracy": 4.821428571428571
   }
 }
