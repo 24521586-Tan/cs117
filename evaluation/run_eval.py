@@ -132,7 +132,7 @@ def _run_case(case, results_dir: Path) -> dict:
             print("  [2/4] Extracting slides…")
             t0 = time.time()
             ext = case.pdf_path.suffix.lower()
-            if ext in (".txt", ".md"):
+            if ext in (".txt", ".md", ".json"):
                 # Plain text / markdown — read directly, no page-level parsing
                 slides_prompt = case.pdf_path.read_text(encoding="utf-8")
                 t_ex = time.time() - t0

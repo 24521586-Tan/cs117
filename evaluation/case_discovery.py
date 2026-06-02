@@ -12,7 +12,7 @@ from typing import Optional
 
 
 AUDIO_EXTS = (".mp3", ".mp4", ".wav")  # .mp4 used as audio-only; faster-whisper extracts the audio track
-SLIDE_EXTS = (".pdf", ".txt", ".md")   # .txt/.md read directly as text; .pdf via markitdown+pypdf
+SLIDE_EXTS = (".pdf", ".txt", ".md", ".json")  # .txt/.md/.json read directly as text; .pdf via markitdown+pypdf
 
 
 class Scenario(str, Enum):
