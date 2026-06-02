@@ -4,6 +4,30 @@ Hướng dẫn chạy đánh giá và giải thích cách tính từng metric.
 
 ---
 
+## Cấu hình GPU / CPU (`backend/.env`)
+
+Mỗi người tự thêm vào `backend/.env` theo máy của mình (file này không commit lên GitHub):
+
+**Có GPU NVIDIA:**
+```env
+WHISPER_MODEL=large-v2
+WHISPER_DEVICE=cuda
+WHISPER_COMPUTE_TYPE=int8_float16
+```
+→ RTF ~0.05–0.10, pipeline 60 phút audio ≈ 3–6 phút ✅
+
+**Chỉ có CPU:**
+```env
+WHISPER_MODEL=small
+WHISPER_DEVICE=cpu
+WHISPER_COMPUTE_TYPE=int8
+```
+→ RTF ~0.3–0.5, chậm hơn nhưng vẫn chạy được (WER sẽ cao hơn)
+
+> **Lưu ý:** `large-v2` trên CPU rất chậm (~2–3x thời gian thực), nên dùng `small` hoặc `medium` nếu không có GPU.
+
+---
+
 ## Cách chạy (CLI)
 
 ### Bước 1 — Chuẩn bị file input
