@@ -1,0 +1,48 @@
+{
+  "name": "ES2013d",
+  "scenario": "both",
+  "has_gt_transcript": true,
+  "has_gt_analysis": false,
+  "transcribe_time": 397.6239309310913,
+  "duration": 1898.56,
+  "extract_time": 0.005367755889892578,
+  "analyze_time": 21.58128261566162,
+  "pipeline_total_time": 419.2105813026428,
+  "rtf": 0.2094344824135615,
+  "wer": 0.28625110521662245,
+  "page_count": null,
+  "slide_extract_coverage": 1.0,
+  "task_tp": null,
+  "task_fp": null,
+  "task_fn": null,
+  "task_precision": null,
+  "task_recall": null,
+  "task_f1": null,
+  "assignment_accuracy": null,
+  "slide_attr_accuracy": null,
+  "summary_kp_coverage": null,
+  "judge_scores": {
+    "summary_completeness": {
+      "score": 5.0,
+      "explanation": "Tóm tắt đã nắm bắt đầy đủ tất cả các quyết định quan trọng và các chủ đề chính được thảo luận trong cuộc họp. Nó bao gồm việc xem xét biên bản cuộc họp trước, trình bày nguyên mẫu, tiêu chí đánh giá, khía cạnh tài chính và đánh giá quy trình dự án."
+    },
+    "summary_accuracy": {
+      "score": 5.0,
+      "explanation": "Tất cả thông tin trong phần tóm tắt đều chính xác 100% và được lấy trực tiếp từ bản ghi cuộc họp và văn bản slide. Không có thông tin nào bịa đặt hay sai lệch."
+    },
+    "task_completeness": {
+      "score": 4.5,
+      "explanation": "Hầu hết các mục hành động đã được trích xuất. Tuy nhiên, có một nhiệm vụ nhỏ ở cuối cuộc họp là 'save everything' (lưu mọi thứ) mà Florence đã đề cập, nhưng nó không được đưa vào danh sách nhiệm vụ. Đây là một thiếu sót nhỏ và không ảnh hưởng đáng kể đến chất lượng tổng thể."
+    },
+    "task_assignment_accuracy": {
+      "score": 5.0,
+      "explanation": "Tất cả các nhiệm vụ đã được gán cho đúng người hoặc được đánh dấu là 'Unassigned' một cách chính xác khi không có người cụ thể nào được chỉ định trong bản ghi."
+    },
+    "task_quote_accuracy": {
+      "score": 5.0,
+      "explanation": "Các trích dẫn nguyên văn cho từng nhiệm vụ hoàn toàn khớp với những lời nói thực tế trong bản ghi cuộc họp."
+    },
+    "overall_comments": "Bản phân tích cuộc họp được tạo ra có chất lượng rất cao. Phần tóm tắt đầy đủ và chính xác, bao gồm tất cả các điểm thảo luận và quyết định quan trọng. Các nhiệm vụ được trích xuất tốt và được gán vai trò chính xác. Các trích dẫn cũng hoàn toàn khớp với bản ghi. Chỉ có một nhiệm vụ nhỏ bị bỏ sót, nhưng điều này không làm giảm đáng kể chất lượng tổng thể của phân tích."
+  },
+  "error": null
+}

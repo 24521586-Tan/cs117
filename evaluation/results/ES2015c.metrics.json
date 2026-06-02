@@ -1,0 +1,48 @@
+{
+  "name": "ES2015c",
+  "scenario": "both",
+  "has_gt_transcript": true,
+  "has_gt_analysis": false,
+  "transcribe_time": 494.5622978210449,
+  "duration": 2135.893375,
+  "extract_time": 0.004473447799682617,
+  "analyze_time": 29.62995982170105,
+  "pipeline_total_time": 524.1967310905457,
+  "rtf": 0.2315482147235205,
+  "wer": 0.2336448598130841,
+  "page_count": null,
+  "slide_extract_coverage": 1.0,
+  "task_tp": null,
+  "task_fp": null,
+  "task_fn": null,
+  "task_precision": null,
+  "task_recall": null,
+  "task_f1": null,
+  "assignment_accuracy": null,
+  "slide_attr_accuracy": null,
+  "summary_kp_coverage": null,
+  "judge_scores": {
+    "summary_completeness": {
+      "score": 5.0,
+      "explanation": "Bản tóm tắt đã nắm bắt đầy đủ tất cả các quyết định chính và các chủ đề quan trọng được thảo luận trong cuộc họp, bao gồm các bài thuyết trình về linh kiện, giao diện người dùng, xu hướng thời trang, cũng như các quyết định về nguồn năng lượng, chip, vỏ điều khiển, giao diện và chủ đề thiết kế."
+    },
+    "summary_accuracy": {
+      "score": 5.0,
+      "explanation": "Tất cả thông tin trong bản tóm tắt đều chính xác và không có bất kỳ thông tin nào bịa đặt hoặc sai lệch so với bản ghi cuộc họp gốc."
+    },
+    "task_completeness": {
+      "score": 4.5,
+      "explanation": "Hầu hết các mục hành động đã được trích xuất. Các nhiệm vụ được giao cho Poppy và Tara, cũng như các nhiệm vụ chưa được giao (đánh giá sản phẩm, nhận hướng dẫn cụ thể, phát triển thiết kế chủ đề rau củ quả, đưa ra 5 ý tưởng vỏ điều khiển) đều được ghi nhận. Tuy nhiên, việc 'stick to the veggie theme' (tuân thủ chủ đề rau củ quả) là một quyết định/hướng dẫn thiết kế hơn là một nhiệm vụ riêng biệt, và việc 'reconvene in 30 minutes' (họp lại sau 30 phút) là một chi tiết hậu cần của cuộc họp chứ không phải một nhiệm vụ cụ thể cho cá nhân hay nhóm."
+    },
+    "task_assignment_accuracy": {
+      "score": 5.0,
+      "explanation": "Các nhiệm vụ đã được phân công chính xác cho đúng người (Poppy, Tara) hoặc được đánh dấu là 'Unassigned' (chưa được giao) một cách phù hợp, vì bản ghi không chỉ định rõ người thực hiện cho các nhiệm vụ đó."
+    },
+    "task_quote_accuracy": {
+      "score": 3.5,
+      "explanation": "Các trích dẫn lời nói khớp chính xác với bản ghi. Tuy nhiên, có 3 trong số 8 nhiệm vụ bị thiếu thông tin về slide liên quan (được đánh dấu là `null`), trong khi các slide tương ứng đang hiển thị trong bản ghi. Ngoài ra, một số trích dẫn không phải là câu lệnh giao việc trực tiếp mà là các câu hỏi hoặc tuyên bố đồng ý/quyết định, từ đó nhiệm vụ được suy ra. Điều này làm giảm tính chính xác của việc liên kết trực tiếp giữa trích dẫn và nhiệm vụ."
+    },
+    "overall_comments": "Bản phân tích cuộc họp này có chất lượng tốt. Tóm tắt và phân công nhiệm vụ rất đầy đủ và chính xác. Điểm cần cải thiện là việc cung cấp số slide chính xác cho tất cả các trích dẫn nhiệm vụ và đảm bảo rằng các trích dẫn nhiệm vụ phản ánh trực tiếp hơn các chỉ thị hành động."
+  },
+  "error": null
+}

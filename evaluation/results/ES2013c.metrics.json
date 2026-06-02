@@ -1,0 +1,48 @@
+{
+  "name": "ES2013c",
+  "scenario": "both",
+  "has_gt_transcript": true,
+  "has_gt_analysis": false,
+  "transcribe_time": 504.49743723869324,
+  "duration": 2358.1226875,
+  "extract_time": 0.011493682861328125,
+  "analyze_time": 15.076517343521118,
+  "pipeline_total_time": 519.5854482650757,
+  "rtf": 0.21394028390165903,
+  "wer": 0.3727760993622021,
+  "page_count": null,
+  "slide_extract_coverage": 1.0,
+  "task_tp": null,
+  "task_fp": null,
+  "task_fn": null,
+  "task_precision": null,
+  "task_recall": null,
+  "task_f1": null,
+  "assignment_accuracy": null,
+  "slide_attr_accuracy": null,
+  "summary_kp_coverage": null,
+  "judge_scores": {
+    "summary_completeness": {
+      "score": 4.5,
+      "explanation": "Tóm tắt đã nắm bắt hầu hết các quyết định chính và các chủ đề lớn của cuộc họp, bao gồm việc xem xét biên bản cuộc họp trước, các bài thuyết trình của Sarah, Kate, Steph và các quyết định cuối cùng về năng lượng, vỏ, giao diện. Tuy nhiên, một số chi tiết nhỏ từ cuộc họp trước như chi phí 12.5 pence cho thiết bị sản xuất hàng loạt đơn giản, yêu cầu \"chỉ dành cho TV\" và \"khẩu hiệu/màu sắc của thiết kế công ty\" đã không được nêu bật rõ ràng trong phần tóm tắt các điểm đã thống nhất từ cuộc họp trước."
+    },
+    "summary_accuracy": {
+      "score": 5.0,
+      "explanation": "Tất cả thông tin được trình bày trong phần tóm tắt đều chính xác và có thể tìm thấy trong bản ghi cuộc họp. Không có thông tin nào bịa đặt hoặc sai lệch."
+    },
+    "task_completeness": {
+      "score": 5.0,
+      "explanation": "Tất cả các mục hành động chính, cả từ cuộc họp trước được xem xét và các mục mới được giao ở cuối cuộc họp, đều đã được trích xuất đầy đủ. Bao gồm cả nhiệm vụ cần chuyển giao cho nhóm khác và nhiệm vụ của Kate về việc kiểm tra lại với nhà sản xuất."
+    },
+    "task_assignment_accuracy": {
+      "score": 5.0,
+      "explanation": "Tất cả các nhiệm vụ đều được giao cho đúng người hoặc nhóm người chịu trách nhiệm, bao gồm cả nhiệm vụ được giao cho \"Unassigned\" (chuyển cho nhóm khác)."
+    },
+    "task_quote_accuracy": {
+      "score": 5.0,
+      "explanation": "Tất cả các trích dẫn cho các nhiệm vụ đều khớp chính xác với lời nói trong bản ghi cuộc họp."
+    },
+    "overall_comments": "Bản phân tích cuộc họp này có chất lượng rất cao. Phần tóm tắt đầy đủ và chính xác, nắm bắt được các điểm thảo luận và quyết định quan trọng. Việc trích xuất và phân công nhiệm vụ được thực hiện một cách hoàn hảo, với độ chính xác cao về cả nội dung và người thực hiện, cũng như các trích dẫn nguyên văn. Đây là một bản phân tích rất hữu ích và đáng tin cậy."
+  },
+  "error": null
+}

@@ -1,0 +1,48 @@
+{
+  "name": "ES2015a",
+  "scenario": "both",
+  "has_gt_transcript": true,
+  "has_gt_analysis": false,
+  "transcribe_time": 202.9770429134369,
+  "duration": 1146.56,
+  "extract_time": 0.0030069351196289062,
+  "analyze_time": 19.08800220489502,
+  "pipeline_total_time": 222.06805205345154,
+  "rtf": 0.17703133103669838,
+  "wer": 0.2523809523809524,
+  "page_count": null,
+  "slide_extract_coverage": 1.0,
+  "task_tp": null,
+  "task_fp": null,
+  "task_fn": null,
+  "task_precision": null,
+  "task_recall": null,
+  "task_f1": null,
+  "assignment_accuracy": null,
+  "slide_attr_accuracy": null,
+  "summary_kp_coverage": null,
+  "judge_scores": {
+    "summary_completeness": {
+      "score": 4.0,
+      "explanation": "Tóm tắt đã nắm bắt được hầu hết các quyết định chính và chủ đề lớn của cuộc họp, bao gồm giới thiệu nhóm, mục tiêu sản phẩm, phương pháp làm việc, buổi đào tạo công cụ và các ý tưởng ban đầu. Tuy nhiên, nó đã bỏ lỡ mục tiêu lợi nhuận cụ thể là 50 triệu euro và một số chi tiết cụ thể về tính thân thiện với người dùng (ví dụ: cho người khó nhìn số, thiết kế công thái học) cũng như nhấn mạnh vào 'phong cách mới' để thu hút thế hệ trẻ."
+    },
+    "summary_accuracy": {
+      "score": 5.0,
+      "explanation": "Tất cả thông tin được trình bày trong phần tóm tắt đều chính xác và có nguồn gốc trực tiếp từ bản ghi cuộc họp và văn bản slide. Không có thông tin nào bịa đặt hay sai lệch."
+    },
+    "task_completeness": {
+      "score": 4.5,
+      "explanation": "Phần lớn các mục hành động đã được trích xuất đầy đủ. Các nhiệm vụ cho Poppy, Tara, Genevieve và các nhiệm vụ chung ('Unassigned') đều được ghi lại. Các nhiệm vụ của Heather như ghi biên bản, lập kế hoạch dự án và thảo luận mục tiêu cũng được đề cập. Chỉ có một nhiệm vụ của Heather bị hiểu sai ngữ cảnh, nhưng không phải là bỏ sót hoàn toàn một nhiệm vụ."
+    },
+    "task_assignment_accuracy": {
+      "score": 3.5,
+      "explanation": "Việc phân công nhiệm vụ cho Poppy, Tara, Genevieve và các nhiệm vụ chung là chính xác. Tuy nhiên, nhiệm vụ cuối cùng của Heather là 'Send specific instructions to you by your personal coach.' đã bị gán sai. Câu trích dẫn này từ slide là một hướng dẫn chung cho các thành viên trong nhóm (ID, UID, ME) rằng họ sẽ nhận được hướng dẫn từ huấn luyện viên cá nhân của họ, chứ không phải là nhiệm vụ mà Heather (Quản lý dự án) phải thực hiện hoặc gửi đi."
+    },
+    "task_quote_accuracy": {
+      "score": 5.0,
+      "explanation": "Tất cả các trích dẫn được cung cấp cho các nhiệm vụ đều khớp chính xác từng từ với bản ghi cuộc họp hoặc văn bản slide. Ngay cả đối với nhiệm vụ bị gán sai cho Heather, câu trích dẫn vẫn đúng nguyên văn từ slide. Vấn đề nằm ở việc giải thích và gán nhiệm vụ, chứ không phải ở độ chính xác của câu trích dẫn."
+    },
+    "overall_comments": "Bản phân tích cuộc họp có chất lượng tốt. Phần tóm tắt cung cấp cái nhìn tổng quan toàn diện và chính xác về cuộc họp, mặc dù có thể bổ sung thêm một vài chi tiết cụ thể. Việc trích xuất nhiệm vụ khá đầy đủ, nhưng có một lỗi đáng chú ý trong việc gán nhiệm vụ cho Heather, cho thấy sự hiểu sai ngữ cảnh của một hướng dẫn chung. Độ chính xác của các trích dẫn là hoàn hảo."
+  },
+  "error": null
+}

@@ -1,0 +1,48 @@
+{
+  "name": "ES2013b",
+  "scenario": "both",
+  "has_gt_transcript": true,
+  "has_gt_analysis": false,
+  "transcribe_time": 5312.567872285843,
+  "duration": 2128.629375,
+  "extract_time": 0.005736112594604492,
+  "analyze_time": 5.675101280212402,
+  "pipeline_total_time": 5318.24870967865,
+  "rtf": 2.495769312723049,
+  "wer": 0.2815981559738763,
+  "page_count": null,
+  "slide_extract_coverage": 1.0,
+  "task_tp": null,
+  "task_fp": null,
+  "task_fn": null,
+  "task_precision": null,
+  "task_recall": null,
+  "task_f1": null,
+  "assignment_accuracy": null,
+  "slide_attr_accuracy": null,
+  "summary_kp_coverage": null,
+  "judge_scores": {
+    "summary_completeness": {
+      "score": 4.0,
+      "explanation": "Tóm tắt đã nắm bắt được hầu hết các chủ đề chính và quyết định quan trọng của cuộc họp, bao gồm mục đích cuộc họp, các bài thuyết trình về nghiên cứu thị trường, chức năng kỹ thuật, thiết kế, các yêu cầu dự án mới và các nhiệm vụ được giao. Tuy nhiên, nó đã bỏ l lỡ một số chi tiết quan trọng như giới hạn chi phí 12.50 Euro cho thiết bị, thảo luận về việc sản xuất hàng loạt/dùng một lần so với khả năng sửa chữa, và cuộc thảo luận về nhóm đối tượng mục tiêu (người dùng sớm so với nhà sản xuất). Những chi tiết này có ảnh hưởng đáng kể đến thiết kế và chiến lược."
+    },
+    "summary_accuracy": {
+      "score": 5.0,
+      "explanation": "Tóm tắt hoàn toàn chính xác về mặt thông tin. Không có bất kỳ thông tin nào bịa đặt hoặc sai lệch so với bản ghi cuộc họp và văn bản slide."
+    },
+    "task_completeness": {
+      "score": 5.0,
+      "explanation": "Tất cả các mục hành động và nhiệm vụ được giao đã được trích xuất đầy đủ từ bản ghi và slide. Mặc dù có một nhiệm vụ bị gán sai người, nhưng bản thân nhiệm vụ đó vẫn được ghi nhận."
+    },
+    "task_assignment_accuracy": {
+      "score": 4.0,
+      "explanation": "Hầu hết các nhiệm vụ đã được gán cho đúng người. Tuy nhiên, có một lỗi trong việc gán nhiệm vụ: nhiệm vụ \"Do research on the cost of rechargeable internal batteries\" (Nghiên cứu chi phí pin sạc bên trong) đã được Kate tự nguyện nhận làm, nhưng lại bị gán cho Florence trong bản phân tích. Các nhiệm vụ còn lại đều được gán chính xác."
+    },
+    "task_quote_accuracy": {
+      "score": 5.0,
+      "explanation": "Tất cả các trích dẫn nguyên văn cho các nhiệm vụ đều khớp chính xác với lời nói trong bản ghi cuộc họp. Không có sự sai lệch nào."
+    },
+    "overall_comments": "Bản phân tích cuộc họp có chất lượng tốt. Phần tóm tắt cung cấp một cái nhìn tổng quan toàn diện về các chủ đề chính và quyết định, mặc dù có thể cải thiện bằng cách bao gồm các ràng buộc về chi phí và các cuộc thảo luận chiến lược quan trọng khác. Việc trích xuất nhiệm vụ rất đầy đủ, nhưng cần chú ý hơn đến độ chính xác trong việc gán nhiệm vụ để tránh nhầm lẫn. Các trích dẫn nguyên văn là hoàn hảo."
+  },
+  "error": null
+}

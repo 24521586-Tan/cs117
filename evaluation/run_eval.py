@@ -245,6 +245,19 @@ def main():
 
     all_results: list[dict] = []
     for case in cases:
+        # Check if case has already been processed successfully to skip and save time
+        metrics_file = results_dir / f"{case.name}.metrics.json"
+        if metrics_file.exists():
+            try:
+                existing = json.loads(metrics_file.read_text(encoding="utf-8"))
+                # Only skip if there was no error and we actually have some results
+                if existing.get("name") == case.name and not existing.get("error"):
+                    print(f"⏭  {case.name} has already been processed successfully. Skipping.")
+                    all_results.append(existing)
+                    continue
+            except Exception:
+                pass
+
         metrics = _run_case(case, results_dir)
         all_results.append(metrics)
         # Write outputs after every case (live progress)

@@ -1,0 +1,48 @@
+{
+  "name": "ES2016a",
+  "scenario": "audio_only",
+  "has_gt_transcript": true,
+  "has_gt_analysis": false,
+  "transcribe_time": 244.13175702095032,
+  "duration": 1384.189375,
+  "extract_time": 0.0,
+  "analyze_time": 2.8452305793762207,
+  "pipeline_total_time": 246.97698760032654,
+  "rtf": 0.17637164497159236,
+  "wer": 0.2592236124478665,
+  "page_count": null,
+  "slide_extract_coverage": null,
+  "task_tp": null,
+  "task_fp": null,
+  "task_fn": null,
+  "task_precision": null,
+  "task_recall": null,
+  "task_f1": null,
+  "assignment_accuracy": null,
+  "slide_attr_accuracy": null,
+  "summary_kp_coverage": null,
+  "judge_scores": {
+    "summary_completeness": {
+      "score": 5.0,
+      "explanation": "Bản tóm tắt đã nắm bắt đầy đủ tất cả các điểm chính của cuộc họp, bao gồm mục tiêu dự án, giới thiệu vai trò của các thành viên, các tính năng mong muốn cho điều khiển từ xa mới (phổ quát, bền, dễ tìm, hiện đại, độc đáo), các ý tưởng thiết kế được thảo luận (hình cầu, bàn phím, hình chữ nhật), những thách thức tiềm ẩn (ổn định, bản lề, nút bấm), và kết luận cuộc họp không có quyết định cuối cùng cùng với các nhiệm vụ được giao."
+    },
+    "summary_accuracy": {
+      "score": 5.0,
+      "explanation": "Tất cả thông tin trong bản tóm tắt đều chính xác và được trích xuất trực tiếp từ bản ghi cuộc họp. Không có thông tin nào bị sai lệch hoặc bịa đặt."
+    },
+    "task_completeness": {
+      "score": 5.0,
+      "explanation": "Tất cả các nhiệm vụ được giao trong cuộc họp đều đã được trích xuất đầy đủ. Cụ thể là nhiệm vụ cho Corinne Whiting (marketing) và hai nhiệm vụ cho Nick DeBusk (quản lý dự án)."
+    },
+    "task_assignment_accuracy": {
+      "score": 5.0,
+      "explanation": "Mỗi nhiệm vụ đều được gán chính xác cho người chịu trách nhiệm. Nhiệm vụ nghiên cứu thị trường được giao cho Corinne Whiting (chuyên gia marketing) và các nhiệm vụ liên quan đến việc chuẩn bị cuộc họp tiếp theo được giao cho Nick DeBusk (quản lý dự án)."
+    },
+    "task_quote_accuracy": {
+      "score": 5.0,
+      "explanation": "Các trích dẫn cho từng nhiệm vụ hoàn toàn khớp với lời nói trong bản ghi cuộc họp, không có bất kỳ sự thay đổi nào."
+    },
+    "overall_comments": "Bản phân tích cuộc họp này có chất lượng rất cao. Tóm tắt đầy đủ, chính xác và các nhiệm vụ được trích xuất, phân công và trích dẫn một cách hoàn hảo. Đây là một bản phân tích mẫu mực."
+  },
+  "error": null
+}

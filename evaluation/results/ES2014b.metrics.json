@@ -1,0 +1,48 @@
+{
+  "name": "ES2014b",
+  "scenario": "both",
+  "has_gt_transcript": true,
+  "has_gt_analysis": false,
+  "transcribe_time": 582.4696390628815,
+  "duration": 2319.893375,
+  "extract_time": 0.009962320327758789,
+  "analyze_time": 15.4947190284729,
+  "pipeline_total_time": 597.9743204116821,
+  "rtf": 0.25107603881272406,
+  "wer": 0.3230385275308064,
+  "page_count": null,
+  "slide_extract_coverage": 1.0,
+  "task_tp": null,
+  "task_fp": null,
+  "task_fn": null,
+  "task_precision": null,
+  "task_recall": null,
+  "task_f1": null,
+  "assignment_accuracy": null,
+  "slide_attr_accuracy": null,
+  "summary_kp_coverage": null,
+  "judge_scores": {
+    "summary_completeness": {
+      "score": 4.5,
+      "explanation": "Tóm tắt đã nắm bắt được hầu hết các quyết định và chủ đề chính của cuộc họp, bao gồm các yêu cầu dự án mới, các bài thuyết trình về thiết kế và nghiên cứu thị trường, cũng như các quyết định quan trọng về chức năng điều khiển từ xa (bỏ nút teletext, 10 nút số, chức năng tìm điều khiển bị mất, các nút chức năng trước/sau). Tuy nhiên, nó thiếu một chi tiết nhỏ về việc cần có hướng dẫn sử dụng tốt hơn cho các chức năng menu."
+    },
+    "summary_accuracy": {
+      "score": 5.0,
+      "explanation": "Tất cả thông tin trong phần tóm tắt đều chính xác và được trích xuất trực tiếp từ bản ghi cuộc họp. Không có thông tin nào bịa đặt hay sai lệch."
+    },
+    "task_completeness": {
+      "score": 5.0,
+      "explanation": "Tất cả các mục hành động được đề cập trong bản ghi cuộc họp đều đã được trích xuất đầy đủ. Bao gồm việc ghi biên bản cuộc họp, lập danh sách các nút chức năng trước/sau, đảm bảo sự rõ ràng về nhiệm vụ cho cuộc họp tiếp theo và việc truyền đạt thông tin bổ sung qua email."
+    },
+    "task_assignment_accuracy": {
+      "score": 5.0,
+      "explanation": "Các nhiệm vụ đã được phân công chính xác. Nhiệm vụ ghi biên bản được giao cho 'Project Manager' và các nhiệm vụ chung khác không được chỉ định cụ thể cho một cá nhân nào đã được gán cho 'Unassigned', điều này là hợp lý."
+    },
+    "task_quote_accuracy": {
+      "score": 5.0,
+      "explanation": "Tất cả các trích dẫn nguyên văn cho các nhiệm vụ đều khớp hoàn hảo với lời nói thực tế trong bản ghi cuộc họp."
+    },
+    "overall_comments": "Phân tích cuộc họp này có chất lượng rất cao. Phần tóm tắt đầy đủ và chính xác, nắm bắt được các điểm mấu chốt của cuộc thảo luận. Việc trích xuất nhiệm vụ hoàn chỉnh, phân công chính xác và các trích dẫn nguyên văn hoàn toàn khớp với bản ghi. Đây là một bản phân tích xuất sắc."
+  },
+  "error": null
+}

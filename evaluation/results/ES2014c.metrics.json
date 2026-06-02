@@ -1,0 +1,48 @@
+{
+  "name": "ES2014c",
+  "scenario": "both",
+  "has_gt_transcript": true,
+  "has_gt_analysis": false,
+  "transcribe_time": 584.9786956310272,
+  "duration": 2273.525375,
+  "extract_time": 0.009817123413085938,
+  "analyze_time": 15.057116746902466,
+  "pipeline_total_time": 600.0456295013428,
+  "rtf": 0.2573002712279062,
+  "wer": 0.3063729114298388,
+  "page_count": null,
+  "slide_extract_coverage": 1.0,
+  "task_tp": null,
+  "task_fp": null,
+  "task_fn": null,
+  "task_precision": null,
+  "task_recall": null,
+  "task_f1": null,
+  "assignment_accuracy": null,
+  "slide_attr_accuracy": null,
+  "summary_kp_coverage": null,
+  "judge_scores": {
+    "summary_completeness": {
+      "score": 4.5,
+      "explanation": "Bản tóm tắt đã nắm bắt được hầu hết các quyết định chính và các chủ đề quan trọng được thảo luận trong cuộc họp. Nó bao gồm các quyết định về nguồn điện (động năng), nút bấm (cao su đơn giản), bảng mạch (đơn giản), chức năng nhận dạng giọng nói (chức năng tìm kiếm), thiết kế vỏ (cong đơn, cao su, cảm giác mềm mại), và nút chờ (hình quả táo). Tuy nhiên, nó không đề cập rõ ràng đến việc từ chối các nút cuộn và các trường hợp có thể thay đổi, mặc dù những điều này được ngụ ý trong các quyết định khác."
+    },
+    "summary_accuracy": {
+      "score": 5.0,
+      "explanation": "Tất cả thông tin trong bản tóm tắt đều chính xác và được lấy trực tiếp từ bản ghi cuộc họp. Không có thông tin nào bịa đặt hoặc không có trong nguồn."
+    },
+    "task_completeness": {
+      "score": 4.0,
+      "explanation": "Hầu hết các mục hành động đã được trích xuất. Các nhiệm vụ như tìm hiểu chi phí nhận dạng giọng nói, giữ cho các nút đơn giản, sắp xếp mọi thứ và thực hiện nhiệm vụ tạo mô hình bằng đất sét đều được ghi lại. Tuy nhiên, một nhiệm vụ cụ thể là 'tìm hiểu độ dẻo của đất sét' (find out how pliable is plasticine) đã bị bỏ sót, mặc dù nhiệm vụ chung về 'nhiệm vụ đất sét' đã được đề cập."
+    },
+    "task_assignment_accuracy": {
+      "score": 5.0,
+      "explanation": "Tất cả các nhiệm vụ đều được gán chính xác cho 'Unassigned' (Chưa được gán) vì bản ghi cuộc họp không chỉ định tên cụ thể cho bất kỳ nhiệm vụ nào. Việc gán cho 'Unassigned' là phù hợp trong trường hợp này."
+    },
+    "task_quote_accuracy": {
+      "score": 5.0,
+      "explanation": "Tất cả các trích dẫn được cung cấp cho các nhiệm vụ đều khớp chính xác với lời nói thực tế trong bản ghi cuộc họp."
+    },
+    "overall_comments": "Bản phân tích cuộc họp này có chất lượng tốt. Phần tóm tắt rất toàn diện và chính xác, nắm bắt được các quyết định cốt lõi. Việc trích xuất nhiệm vụ cũng khá tốt, mặc dù có thể cải thiện một chút bằng cách nắm bắt các nhiệm vụ phụ hoặc nhiệm vụ tìm kiếm thông tin cụ thể hơn. Độ chính xác của việc gán nhiệm vụ và trích dẫn là hoàn hảo. Nhìn chung, đây là một bản phân tích hữu ích và đáng tin cậy."
+  },
+  "error": null
+}

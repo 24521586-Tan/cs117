@@ -1,0 +1,48 @@
+{
+  "name": "ES2014a",
+  "scenario": "audio_only",
+  "has_gt_transcript": true,
+  "has_gt_analysis": false,
+  "transcribe_time": 223.36989068984985,
+  "duration": 1149.013375,
+  "extract_time": 0.0,
+  "analyze_time": 11.23982310295105,
+  "pipeline_total_time": 234.6097137928009,
+  "rtf": 0.19440147134044444,
+  "wer": 0.34899615548910723,
+  "page_count": null,
+  "slide_extract_coverage": null,
+  "task_tp": null,
+  "task_fp": null,
+  "task_fn": null,
+  "task_precision": null,
+  "task_recall": null,
+  "task_f1": null,
+  "assignment_accuracy": null,
+  "slide_attr_accuracy": null,
+  "summary_kp_coverage": null,
+  "judge_scores": {
+    "summary_completeness": {
+      "score": 4.5,
+      "explanation": "Bản tóm tắt đã nắm bắt được hầu hết các quyết định và chủ đề chính của cuộc họp, bao gồm mục tiêu dự án, các giai đoạn thiết kế, mục tiêu tài chính (giá bán, chi phí sản xuất), các yêu cầu của người dùng đối với thiết bị điều khiển từ xa và quyết định ban đầu về việc tập trung vào điều khiển TV. Tuy nhiên, nó bỏ qua một hoạt động nhỏ là vẽ trên bảng trắng (whiteboard), vốn là một phần của việc làm quen và kiểm tra công cụ, mặc dù đây không phải là một quyết định cốt lõi của dự án."
+    },
+    "summary_accuracy": {
+      "score": 5.0,
+      "explanation": "Tất cả thông tin trong bản tóm tắt đều chính xác và được trích xuất trực tiếp từ bản ghi cuộc họp. Không có thông tin nào bị thêm vào hoặc bịa đặt."
+    },
+    "task_completeness": {
+      "score": 5.0,
+      "explanation": "Chỉ có một nhiệm vụ rõ ràng được giao trong cuộc họp là người quản lý sẽ chuẩn bị biên bản cuộc họp. Nhiệm vụ này đã được trích xuất đầy đủ và chính xác. Các hoạt động khác như 'thiết kế' là mô tả công việc chung chứ không phải nhiệm vụ cụ thể với người được giao."
+    },
+    "task_assignment_accuracy": {
+      "score": 5.0,
+      "explanation": "Nhiệm vụ 'viết biên bản cuộc họp' đã được gán chính xác cho 'manager' (người quản lý), dựa trên lời nói của người nói trong bản ghi ('And I guess I'll try and write up some minutes of this meeting...')."
+    },
+    "task_quote_accuracy": {
+      "score": 5.0,
+      "explanation": "Trích dẫn cho nhiệm vụ ('And I guess I'll try and write up some minutes of this meeting to give it to you for the next meeting.') hoàn toàn khớp với lời nói trong bản ghi."
+    },
+    "overall_comments": "Bản phân tích cuộc họp này có chất lượng rất tốt. Phần tóm tắt đầy đủ, chính xác và nắm bắt được các điểm mấu chốt của cuộc họp. Việc trích xuất và gán nhiệm vụ cũng hoàn hảo, với trích dẫn chính xác. Cần lưu ý rằng hoạt động vẽ trên bảng trắng có thể được bỏ qua trong tóm tắt vì nó không phải là một quyết định quan trọng của dự án."
+  },
+  "error": null
+}

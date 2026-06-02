@@ -1,0 +1,48 @@
+{
+  "name": "ES2016d",
+  "scenario": "both",
+  "has_gt_transcript": true,
+  "has_gt_analysis": false,
+  "transcribe_time": 247.9687225818634,
+  "duration": 1523.253375,
+  "extract_time": 0.03998899459838867,
+  "analyze_time": 18.561114072799683,
+  "pipeline_total_time": 266.5698256492615,
+  "rtf": 0.162788887687095,
+  "wer": 0.45969908651262764,
+  "page_count": null,
+  "slide_extract_coverage": 1.0,
+  "task_tp": null,
+  "task_fp": null,
+  "task_fn": null,
+  "task_precision": null,
+  "task_recall": null,
+  "task_f1": null,
+  "assignment_accuracy": null,
+  "slide_attr_accuracy": null,
+  "summary_kp_coverage": null,
+  "judge_scores": {
+    "summary_completeness": {
+      "score": 4.5,
+      "explanation": "Bản tóm tắt đã nắm bắt được hầu hết các chủ đề chính và quyết định quan trọng của cuộc họp, bao gồm việc xem xét biên bản cuộc họp trước, trình bày nguyên mẫu, đánh giá dựa trên các tiêu chí, thảo luận về ngân sách và điều chỉnh thiết kế để phù hợp với ngân sách, cũng như đánh giá quy trình dự án. Tuy nhiên, nó có thể chi tiết hơn một chút về các tiêu chí đánh giá cụ thể (ví dụ: sự đổi mới công nghệ, thời trang trong điện tử) và quyết định không sử dụng nhận dạng giọng nói đã được đưa ra trong cuộc họp trước."
+    },
+    "summary_accuracy": {
+      "score": 5.0,
+      "explanation": "Tất cả thông tin trong bản tóm tắt đều chính xác và có thể được xác minh từ bản ghi cuộc họp. Không có thông tin sai lệch hay bịa đặt nào được tìm thấy."
+    },
+    "task_completeness": {
+      "score": 5.0,
+      "explanation": "Tất cả các mục hành động rõ ràng được đề cập trong bản ghi đã được trích xuất đầy đủ. Các nhiệm vụ như hoàn thành biên bản cuộc họp cuối cùng, chuẩn bị bảng câu hỏi tiếp theo và kiểm tra với sếp chính về các bước tiếp theo đều được ghi nhận."
+    },
+    "task_assignment_accuracy": {
+      "score": 5.0,
+      "explanation": "Các nhiệm vụ được giao cho 'Secretary' (Thư ký) là hoàn toàn chính xác. Người nói trong cuộc họp tự nhận mình sẽ thực hiện các nhiệm vụ này, và vai trò thư ký là phù hợp để xử lý các công việc hành chính và theo dõi này."
+    },
+    "task_quote_accuracy": {
+      "score": 5.0,
+      "explanation": "Các trích dẫn nguyên văn cho từng nhiệm vụ đều khớp chính xác với lời nói trong bản ghi cuộc họp. Không có sự sai lệch nào được tìm thấy."
+    },
+    "overall_comments": "Bản phân tích cuộc họp này có chất lượng rất cao. Tóm tắt đầy đủ, chính xác và các nhiệm vụ được trích xuất, phân công và trích dẫn một cách hoàn hảo. Đây là một bản phân tích xuất sắc."
+  },
+  "error": null
+}

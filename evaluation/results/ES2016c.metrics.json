@@ -1,0 +1,48 @@
+{
+  "name": "ES2016c",
+  "scenario": "both",
+  "has_gt_transcript": true,
+  "has_gt_analysis": false,
+  "transcribe_time": 370.05099081993103,
+  "duration": 2308.3946875,
+  "extract_time": 0.021451711654663086,
+  "analyze_time": 16.24876594543457,
+  "pipeline_total_time": 386.32120847702026,
+  "rtf": 0.16030663769231665,
+  "wer": 0.2598168870803662,
+  "page_count": null,
+  "slide_extract_coverage": 1.0,
+  "task_tp": null,
+  "task_fp": null,
+  "task_fn": null,
+  "task_precision": null,
+  "task_recall": null,
+  "task_f1": null,
+  "assignment_accuracy": null,
+  "slide_attr_accuracy": null,
+  "summary_kp_coverage": null,
+  "judge_scores": {
+    "summary_completeness": {
+      "score": 5.0,
+      "explanation": "Bản tóm tắt đã nắm bắt đầy đủ tất cả các điểm chính của cuộc họp, bao gồm việc xem xét biên bản cuộc họp trước, các bài thuyết trình từ bộ phận Marketing, thiết kế giao diện người dùng và thiết kế công nghiệp, cũng như các quyết định quan trọng về nguồn năng lượng, vật liệu vỏ, giao diện người dùng và chip. Không có thông tin quan trọng nào bị bỏ lỡ."
+    },
+    "summary_accuracy": {
+      "score": 5.0,
+      "explanation": "Tất cả thông tin trong bản tóm tắt đều chính xác và được trích xuất trực tiếp từ bản ghi cuộc họp. Không có bất kỳ thông tin nào bị thêm vào hoặc sai lệch so với nguồn."
+    },
+    "task_completeness": {
+      "score": 5.0,
+      "explanation": "Tất cả các mục hành động được giao vào cuối cuộc họp đều đã được trích xuất đầy đủ. Các nhiệm vụ cho Ryan, Manuel, Karen và nhiệm vụ chung của Ryan và Manuel đều được ghi lại."
+    },
+    "task_assignment_accuracy": {
+      "score": 5.0,
+      "explanation": "Mỗi nhiệm vụ đều được gán chính xác cho người hoặc nhóm người chịu trách nhiệm, đúng như đã nêu trong bản ghi cuộc họp."
+    },
+    "task_quote_accuracy": {
+      "score": 5.0,
+      "explanation": "Các trích dẫn cho mỗi nhiệm vụ hoàn toàn khớp với lời nói thực tế trong bản ghi cuộc họp, không có sự thay đổi nào."
+    },
+    "overall_comments": "Bản phân tích cuộc họp này có chất lượng rất cao. Tóm tắt đầy đủ, chính xác và bao quát tất cả các điểm thảo luận và quyết định quan trọng. Các nhiệm vụ được trích xuất hoàn chỉnh, gán đúng người và trích dẫn chính xác. Đây là một bản phân tích xuất sắc."
+  },
+  "error": null
+}
