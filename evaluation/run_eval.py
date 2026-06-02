@@ -105,10 +105,14 @@ def _run_case(case, results_dir: Path) -> dict:
             segs_gen, info = model.transcribe(
                 str(case.audio_path), beam_size=5, vad_filter=True
             )
-            segments = [
-                {"start": round(s.start, 2), "end": round(s.end, 2), "text": s.text.strip()}
-                for s in segs_gen
-            ]
+            segments = []
+            total_dur = info.duration or 1.0
+            for s in segs_gen:
+                segments.append({"start": round(s.start, 2), "end": round(s.end, 2), "text": s.text.strip()})
+                pct = min(s.end / total_dur * 100, 100)
+                elapsed = time.time() - t0
+                print(f"\r      Transcribing… {pct:5.1f}%  [{elapsed:.0f}s]", end="", flush=True)
+            print()  # newline after progress
             transcript = {"segments": segments, "language": info.language}
             t_tx = time.time() - t0
             metrics["transcribe_time"] = t_tx
