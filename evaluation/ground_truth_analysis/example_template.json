@@ -1,0 +1,33 @@
+{
+  "_comment": "Rename this file to {stem}.json matching audios/{stem}.mp3 or slides/{stem}.pdf",
+  "name": "example",
+  "scenario": "both",
+  "summary_key_points": [
+    "Team agreed to move milestone 2 deadline to next Friday",
+    "CI pipeline will be adopted starting this sprint",
+    "Weekly sync meetings changed to Tuesdays"
+  ],
+  "tasks": [
+    {
+      "task": "Prepare the milestone 2 slide deck",
+      "assignee": "Gang Chen",
+      "deadline": "next Friday",
+      "slide": 4,
+      "quote": "Gang, can you prepare the deck for milestone two by Friday?"
+    },
+    {
+      "task": "Set up CI pipeline on the repository",
+      "assignee": "Unassigned",
+      "deadline": null,
+      "slide": null,
+      "quote": "We should set up the CI pipeline as soon as possible."
+    },
+    {
+      "task": "Send meeting notes to all attendees",
+      "assignee": "Alice",
+      "deadline": "end of day",
+      "slide": null,
+      "quote": "Alice, please send the meeting notes to everyone by end of day."
+    }
+  ]
+}
