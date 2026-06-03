@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.core.supabase import get_supabase
+from app.workers.pipeline import process_job
 
 router = APIRouter(prefix="/jobs", tags=["jobs"])
 bearer = HTTPBearer()
@@ -93,6 +94,35 @@ async def get_job_result(job_id: str, user=Depends(get_current_user)):
 
 
 TERMINAL_STATUSES = {"done", "failed", "cancelled"}
+
+
+@router.post("/{job_id}/retry")
+async def retry_job(
+    job_id: str,
+    background_tasks: BackgroundTasks,
+    user=Depends(get_current_user),
+):
+    """Resume a failed/cancelled job from the first stage without a cached
+    result. transcript/analysis/notion_url already stored in the row are reused
+    automatically by the pipeline."""
+    job = _get_job(job_id, user.id)
+    if job["status"] not in {"failed", "cancelled"}:
+        raise HTTPException(
+            status_code=409,
+            detail=f"Job status is '{job['status']}', not retryable.",
+        )
+    sb = get_supabase()
+    sb.table("jobs").update({
+        "status": "pending",
+        "error": None,
+    }).eq("id", job_id).execute()
+    background_tasks.add_task(
+        process_job,
+        job_id,
+        job.get("file_path"),
+        job.get("slide_path"),
+    )
+    return {"job_id": job_id, "status": "pending"}
 
 
 @router.post("/{job_id}/cancel")

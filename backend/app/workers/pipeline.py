@@ -27,6 +27,20 @@ def process_job(job_id: str, audio_path: Optional[str], slide_path: Optional[str
     def upd(**fields):
         sb.table("jobs").update(fields).eq("id", job_id).execute()
 
+    # Load any cached outputs from a prior (failed) run — lets retry resume at
+    # the first stage that hasn't produced a result yet.
+    cached = (
+        sb.table("jobs")
+        .select("transcript, analysis, notion_url")
+        .eq("id", job_id)
+        .execute()
+        .data
+    )
+    cached_row = cached[0] if cached else {}
+    cached_transcript = cached_row.get("transcript")
+    cached_analysis = cached_row.get("analysis")
+    cached_notion = cached_row.get("notion_url")
+
     def is_cancelled() -> bool:
         row = sb.table("jobs").select("status").eq("id", job_id).execute().data
         return bool(row) and row[0].get("status") == "cancelled"
@@ -50,8 +64,11 @@ def process_job(job_id: str, audio_path: Optional[str], slide_path: Optional[str
     try:
         check_cancelled()
 
-        # ── Step 1: Transcribe audio (skip if no audio uploaded) ──
-        if audio_path:
+        # ── Step 1: Transcribe audio (skip if cached or no audio uploaded) ──
+        if cached_transcript:
+            transcript = cached_transcript
+            upd(progress=100)
+        elif audio_path:
             upd(status="transcribing", progress=0)
             transcript = transcribe(audio_path, on_progress=on_progress)
             upd(transcript=transcript, progress=100)
@@ -61,9 +78,10 @@ def process_job(job_id: str, audio_path: Optional[str], slide_path: Optional[str
 
         check_cancelled()
 
-        # ── Step 2: Extract slide text (skip if no PDF uploaded) ──
+        # ── Step 2: Extract slide text (always re-run when a slide is present —
+        # fast, and we need the page-numbered prompt format that isn't cached). ──
         slides_prompt = ""
-        if slide_path:
+        if slide_path and not cached_analysis:
             slide_bytes = sb.storage.from_(_BUCKET).download(slide_path)
             slide_ext = os.path.splitext(slide_path)[1].lower()
             slides = extract_slides_any(slide_bytes, slide_ext)
@@ -74,15 +92,22 @@ def process_job(job_id: str, audio_path: Optional[str], slide_path: Optional[str
 
         check_cancelled()
 
-        # ── Step 3: Analyze with LLM ──
-        upd(status="analyzing")
-        analysis = analyze_meeting(transcript, slides_prompt)
-        upd(analysis=analysis, status="syncing")
+        # ── Step 3: Analyze with LLM (skip if cached) ──
+        if cached_analysis:
+            analysis = cached_analysis
+            upd(status="syncing")
+        else:
+            upd(status="analyzing")
+            analysis = analyze_meeting(transcript, slides_prompt)
+            upd(analysis=analysis, status="syncing")
 
         check_cancelled()
 
-        # ── Step 4: Sync to Notion ──
-        notion_url = create_meeting_page(analysis)
+        # ── Step 4: Sync to Notion (skip if cached) ──
+        if cached_notion:
+            notion_url = cached_notion
+        else:
+            notion_url = create_meeting_page(analysis)
         upd(notion_url=notion_url, status="done")
 
         # Privacy: remove uploaded source files once the Notion page exists.

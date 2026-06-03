@@ -92,6 +92,27 @@ export default function JobPage() {
   const isDone = status === "done";
   const isFailed = status === "failed" || status === "cancelled" || !!error;
 
+  const handleRetry = async () => {
+    try {
+      const token = await getToken();
+      const res = await fetch(`${API}/jobs/${id}/retry`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      // Reset local state and resume polling.
+      setError("");
+      setStatus("pending");
+      setProgress(0);
+      setElapsed(0);
+      stop();
+      timer.current = setInterval(fetchStatus, POLL_MS);
+      ticker.current = setInterval(() => setElapsed(s => s + 1), 1000);
+    } catch {
+      setDisconnected(true);
+    }
+  };
+
   const handleStop = async () => {
     if (cancelling) return;
     if (!confirm("Stop this job? Any progress so far will be discarded.")) return;
@@ -129,7 +150,7 @@ export default function JobPage() {
       <NavBar />
 
       {!isDone && !isFailed && <ProcessingView status={status} elapsed={elapsed} progress={progress} disconnected={disconnected} onStop={handleStop} cancelling={cancelling} />}
-      {isFailed && <ErrorView message={error} cancelled={status === "cancelled"} />}
+      {isFailed && <ErrorView message={error} cancelled={status === "cancelled"} onRetry={handleRetry} />}
       {isDone && <DoneView notionUrl={notionUrl} jobId={id!} />}
     </div>
   );
@@ -267,7 +288,7 @@ function DoneView({ notionUrl, jobId }: { notionUrl: string | null; jobId: strin
 }
 
 /* ── Error / cancelled view ── */
-function ErrorView({ message, cancelled }: { message: string; cancelled?: boolean }) {
+function ErrorView({ message, cancelled, onRetry }: { message: string; cancelled?: boolean; onRetry?: () => void }) {
   return (
     <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
       <div style={{ background: "var(--surface)", borderRadius: "var(--radius-lg)", boxShadow: "var(--shadow-1)", padding: "40px 48px", textAlign: "center", maxWidth: 440 }}>
@@ -278,9 +299,26 @@ function ErrorView({ message, cancelled }: { message: string; cancelled?: boolea
         </div>
         <p style={{ fontSize: 16, fontFamily: "'Google Sans', sans-serif", color: "var(--gray-900)", marginBottom: 8 }}>{cancelled ? "Job cancelled" : "Analysis failed"}</p>
         <p style={{ fontSize: 13, color: "var(--gray-600)", marginBottom: 24, wordBreak: "break-word" }}>{message}</p>
-        <a href="/upload" style={{ display: "inline-flex", padding: "10px 24px", background: "var(--blue)", color: "white", borderRadius: 4, fontFamily: "'Google Sans', sans-serif", fontSize: 14, fontWeight: 500, textDecoration: "none" }}>
-          Try again
-        </a>
+        <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
+          {onRetry && (
+            <button
+              onClick={onRetry}
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 6,
+                padding: "10px 24px", background: "var(--blue)", color: "white",
+                border: "none", borderRadius: 4,
+                fontFamily: "'Google Sans', sans-serif", fontSize: 14, fontWeight: 500,
+                cursor: "pointer",
+              }}
+            >
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M17.65 6.35A7.958 7.958 0 0012 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0112 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z" /></svg>
+              Retry from last step
+            </button>
+          )}
+          <a href="/upload" style={{ display: "inline-flex", padding: "10px 24px", background: "transparent", color: "var(--gray-700)", border: "1px solid var(--gray-300)", borderRadius: 4, fontFamily: "'Google Sans', sans-serif", fontSize: 14, fontWeight: 500, textDecoration: "none" }}>
+            New upload
+          </a>
+        </div>
       </div>
     </div>
   );
