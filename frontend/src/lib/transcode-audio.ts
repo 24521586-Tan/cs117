@@ -1,67 +1,87 @@
-// Browser-side WAV → MP3 transcoder.
-// Used to shrink large uploads (Supabase free-tier file caps + Railway memory)
-// before they leave the browser. faster-whisper downsamples internally, so
-// 96 kbps mono MP3 is plenty for transcription quality.
+// Browser-side WAV/M4A/MP4 → MP3 transcoder.
+//
+// Decoding (hardware-accelerated) runs on the main thread; the heavy lamejs
+// encode loop runs in a worker so the page stays responsive. Audio is downmixed
+// to mono to roughly halve in-flight memory (a 60-min stereo WAV at 44.1 kHz
+// decodes to ~300 MB of Float32 — mono drops that to ~150 MB).
 
-import lamejs from "@breezystack/lamejs";
+import TranscodeWorker from "./transcode-audio.worker?worker";
 
-const BITRATE_KBPS = 96;
-const FRAME_SIZE = 1152;
+const SAFE_DECODE_BYTES = 200 * 1024 * 1024;  // ~200 MB raw — Web Audio will refuse anything close to the tab heap limit
 
 export async function transcodeWavToMp3(
   file: File,
   onProgress?: (pct: number) => void,
 ): Promise<File> {
-  const buffer = await file.arrayBuffer();
+  if (file.size > SAFE_DECODE_BYTES) {
+    throw new Error("Audio file is too large to compress in the browser.");
+  }
 
-  // Web Audio API decodes any container the browser knows (wav, mp3, mp4, m4a)
-  // into raw PCM Float32 samples.
-  const AudioCtx = (window.AudioContext ||
-    (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext);
+  const arrayBuffer = await file.arrayBuffer();
+
+  // Decode container → raw PCM via Web Audio.
+  const AudioCtx =
+    window.AudioContext ||
+    (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
   const audioCtx = new AudioCtx();
   let audioBuffer: AudioBuffer;
   try {
-    audioBuffer = await audioCtx.decodeAudioData(buffer.slice(0));
+    audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
   } finally {
     audioCtx.close();
   }
 
-  const channels = Math.min(audioBuffer.numberOfChannels, 2);
+  // Downmix to mono and convert to Int16.
   const sampleRate = audioBuffer.sampleRate;
-  const encoder = new lamejs.Mp3Encoder(channels, sampleRate, BITRATE_KBPS);
+  const left = pcmToInt16(downmixToMono(audioBuffer));
+  const right: Int16Array | null = null;
 
-  const left = floatTo16(audioBuffer.getChannelData(0));
-  const right = channels === 2 ? floatTo16(audioBuffer.getChannelData(1)) : null;
-  const totalSamples = left.length;
+  // Encode in a worker so the main thread keeps painting.
+  return new Promise<File>((resolve, reject) => {
+    const worker = new TranscodeWorker();
+    const chunks: Uint8Array[] = [];
 
-  const chunks: Uint8Array[] = [];
-  let lastReported = -1;
-
-  for (let i = 0; i < totalSamples; i += FRAME_SIZE) {
-    const l = left.subarray(i, i + FRAME_SIZE);
-    const r = right ? right.subarray(i, i + FRAME_SIZE) : null;
-    const out = r ? encoder.encodeBuffer(l, r) : encoder.encodeBuffer(l);
-    if (out.length > 0) chunks.push(out);
-
-    if (onProgress) {
-      const pct = Math.floor((i / totalSamples) * 100);
-      if (pct !== lastReported && pct % 2 === 0) {
-        lastReported = pct;
-        onProgress(pct);
+    worker.onmessage = (e: MessageEvent<{ type: string; pct?: number; chunk?: Uint8Array; message?: string }>) => {
+      const msg = e.data;
+      if (msg.type === "chunk" && msg.chunk) {
+        chunks.push(msg.chunk);
+      } else if (msg.type === "progress" && typeof msg.pct === "number") {
+        onProgress?.(msg.pct);
+      } else if (msg.type === "done") {
+        onProgress?.(100);
+        worker.terminate();
+        const blob = new Blob(chunks as BlobPart[], { type: "audio/mpeg" });
+        const newName = file.name.replace(/\.(wav|m4a|mp4)$/i, ".mp3");
+        resolve(new File([blob], newName, { type: "audio/mpeg" }));
+      } else if (msg.type === "error") {
+        worker.terminate();
+        reject(new Error(msg.message || "Audio compression failed."));
       }
-    }
-  }
+    };
 
-  const tail = encoder.flush();
-  if (tail.length > 0) chunks.push(tail);
-  onProgress?.(100);
+    worker.onerror = (e) => {
+      worker.terminate();
+      reject(new Error(e.message || "Audio compression worker crashed."));
+    };
 
-  const blob = new Blob(chunks as BlobPart[], { type: "audio/mpeg" });
-  const newName = file.name.replace(/\.(wav|m4a|mp4)$/i, ".mp3");
-  return new File([blob], newName, { type: "audio/mpeg" });
+    // Transfer the PCM buffer to the worker (zero-copy).
+    worker.postMessage(
+      { channels: 1, sampleRate, left, right },
+      [left.buffer],
+    );
+  });
 }
 
-function floatTo16(input: Float32Array): Int16Array {
+function downmixToMono(buffer: AudioBuffer): Float32Array {
+  if (buffer.numberOfChannels === 1) return buffer.getChannelData(0);
+  const l = buffer.getChannelData(0);
+  const r = buffer.getChannelData(1);
+  const out = new Float32Array(l.length);
+  for (let i = 0; i < l.length; i++) out[i] = (l[i] + r[i]) * 0.5;
+  return out;
+}
+
+function pcmToInt16(input: Float32Array): Int16Array {
   const out = new Int16Array(input.length);
   for (let i = 0; i < input.length; i++) {
     const s = Math.max(-1, Math.min(1, input[i]));
