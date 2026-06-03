@@ -1,15 +1,12 @@
-import io
 import os
 import re
 import unicodedata
-import uuid
 
 from typing import Optional
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, UploadFile, File as FileParam
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from mutagen import File as MutagenFile
-from pypdf import PdfReader
+from pydantic import BaseModel
 
 from app.core.supabase import get_supabase
 from app.workers.pipeline import process_job
@@ -19,21 +16,14 @@ bearer = HTTPBearer()
 
 # Matches evaluation/case_discovery.py so prod and eval accept the same inputs.
 ALLOWED_AUDIO_EXTS = {".mp3", ".mp4", ".m4a", ".wav"}
-ALLOWED_AUDIO_TYPES = {
-    "audio/mpeg", "audio/mp4", "audio/x-m4a", "audio/m4a",
-    "audio/wav", "audio/x-wav", "audio/wave",
-    "video/mp4",  # .mp4 audio-only — browsers often send this content-type
-}
 ALLOWED_SLIDE_EXTS = {".pdf", ".txt", ".md", ".json"}
-ALLOWED_SLIDE_TYPES = {
-    "application/pdf",
-    "text/plain", "text/markdown", "text/x-markdown",
-    "application/json", "application/octet-stream",  # some browsers send octet-stream for .md/.json
-}
 _BUCKET = "audio-files"
-MAX_AUDIO_MINUTES = 60
-MAX_SLIDE_PAGES = 60
-MAX_SLIDE_CHARS = 200_000
+
+# Hard caps enforced before issuing a signed upload URL. Storage bucket file-size
+# limit on Supabase should be >= MAX_AUDIO_BYTES for these to actually let
+# uploads through; we pre-check to fail fast with a friendly message.
+MAX_AUDIO_BYTES = 100 * 1024 * 1024   # 100 MB — fits 60-min MP3 @ 192kbps
+MAX_SLIDE_BYTES = 30 * 1024 * 1024    # 30 MB — generous for PDFs
 
 
 def safe_filename(name: str) -> str:
@@ -44,135 +34,147 @@ def safe_filename(name: str) -> str:
 
 
 def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(bearer)):
-    """Validate Bearer token and return user."""
     sb = get_supabase()
     try:
-        result = sb.auth.get_user(credentials.credentials)
-        return result.user
+        return sb.auth.get_user(credentials.credentials).user
     except Exception:
         raise HTTPException(status_code=401, detail="Invalid or expired token")
 
 
-def _store(sb, user_id: str, upload: UploadFile, raw: bytes) -> str:
-    path = f"{user_id}/{uuid.uuid4()}-{safe_filename(upload.filename or 'file')}"
-    sb.storage.from_(_BUCKET).upload(
-        path, raw, file_options={"content-type": upload.content_type or "application/octet-stream"}
-    )
-    return path
+# ── New direct-upload flow ──────────────────────────────────────────────────
+# 1. FE POST /upload/init with file metadata → BE creates job row + signed
+#    upload URLs for audio and/or slide.
+# 2. FE uploads bytes directly to Supabase Storage via the signed URLs
+#    (bypasses Railway memory/body limits entirely).
+# 3. FE POST /upload/complete with the job_id → BE updates job paths and
+#    schedules process_job.
+
+class UploadInitRequest(BaseModel):
+    audio_filename: Optional[str] = None
+    audio_size: Optional[int] = None
+    slide_filename: Optional[str] = None
+    slide_size: Optional[int] = None
 
 
-@router.post("")
-async def upload_meeting(
-    background_tasks: BackgroundTasks,
-    user=Depends(get_current_user),
-    file: Optional[UploadFile] = FileParam(None),
-    slides: Optional[UploadFile] = FileParam(None),
-):
-    if not file and not slides:
+class UploadCompleteRequest(BaseModel):
+    job_id: str
+
+
+def _validate_audio(filename: Optional[str], size: Optional[int]) -> None:
+    if not filename:
+        return
+    ext = os.path.splitext(filename)[1].lower()
+    if ext not in ALLOWED_AUDIO_EXTS:
+        raise HTTPException(
+            status_code=422,
+            detail="File âm thanh không hợp lệ. Chỉ hỗ trợ .mp3, .mp4, .m4a hoặc .wav.",
+        )
+    if size is not None and size > MAX_AUDIO_BYTES:
+        raise HTTPException(
+            status_code=422,
+            detail=f"File âm thanh quá lớn ({size // (1024*1024)} MB). Giới hạn {MAX_AUDIO_BYTES // (1024*1024)} MB.",
+        )
+
+
+def _validate_slide(filename: Optional[str], size: Optional[int]) -> None:
+    if not filename:
+        return
+    ext = os.path.splitext(filename)[1].lower()
+    if ext not in ALLOWED_SLIDE_EXTS:
+        raise HTTPException(
+            status_code=422,
+            detail="File slide không hợp lệ. Chỉ hỗ trợ .pdf, .txt, .md hoặc .json.",
+        )
+    if size is not None and size > MAX_SLIDE_BYTES:
+        raise HTTPException(
+            status_code=422,
+            detail=f"File slide quá lớn ({size // (1024*1024)} MB). Giới hạn {MAX_SLIDE_BYTES // (1024*1024)} MB.",
+        )
+
+
+@router.post("/init")
+async def upload_init(payload: UploadInitRequest, user=Depends(get_current_user)):
+    if not payload.audio_filename and not payload.slide_filename:
         raise HTTPException(status_code=422, detail="Cần ít nhất 1 file (audio hoặc slide).")
 
-    if file:
-        audio_ext = os.path.splitext(file.filename or "")[1].lower()
-        if audio_ext not in ALLOWED_AUDIO_EXTS and (file.content_type or "") not in ALLOWED_AUDIO_TYPES:
-            raise HTTPException(
-                status_code=422,
-                detail="File âm thanh không hợp lệ. Chỉ hỗ trợ .mp3, .mp4, .m4a hoặc .wav.",
-            )
-
-    if slides:
-        slide_ext = os.path.splitext(slides.filename or "")[1].lower()
-        if slide_ext not in ALLOWED_SLIDE_EXTS and (slides.content_type or "") not in ALLOWED_SLIDE_TYPES:
-            raise HTTPException(
-                status_code=422,
-                detail="File slide không hợp lệ. Chỉ hỗ trợ .pdf, .txt, .md hoặc .json.",
-            )
+    _validate_audio(payload.audio_filename, payload.audio_size)
+    _validate_slide(payload.slide_filename, payload.slide_size)
 
     sb = get_supabase()
-
-    # Ensure profile row exists (foreign key required before inserting job)
     sb.table("profiles").upsert({"id": user.id, "email": user.email}, on_conflict="id").execute()
 
-    # Read file bytes upfront so we can validate before storing
-    audio_bytes = await file.read() if file else None
-    slide_bytes = await slides.read() if slides else None
-
-    # ── Collect ALL validation errors so the user sees every issue at once ──
-    errors: list[str] = []
-
-    # Validate audio duration
-    if audio_bytes:
-        try:
-            audio_info = MutagenFile(io.BytesIO(audio_bytes))
-            if audio_info and audio_info.info and audio_info.info.length:
-                duration_min = audio_info.info.length / 60
-                if duration_min > MAX_AUDIO_MINUTES:
-                    errors.append(
-                        f"File âm thanh dài {int(duration_min)} phút, vượt quá giới hạn {MAX_AUDIO_MINUTES} phút."
-                    )
-        except Exception:
-            pass  # Cannot read duration — accept file, pipeline will process it
-
-    # Validate slide size
-    if slide_bytes and slides:
-        slide_ext = os.path.splitext(slides.filename or "")[1].lower()
-        if slide_ext == ".pdf":
-            try:
-                reader = PdfReader(io.BytesIO(slide_bytes))
-                page_count = len(reader.pages)
-                if page_count > MAX_SLIDE_PAGES:
-                    errors.append(
-                        f"File PDF có {page_count} trang, vượt quá giới hạn {MAX_SLIDE_PAGES} trang."
-                    )
-            except Exception:
-                pass  # Cannot read pages — accept file, pipeline will re-check
-        else:
-            if len(slide_bytes) > MAX_SLIDE_CHARS * 4:  # generous byte->char headroom
-                errors.append(
-                    f"File slide vượt quá giới hạn {MAX_SLIDE_CHARS} ký tự."
-                )
-
-    # Return all errors at once
-    if errors:
-        raise HTTPException(status_code=422, detail="\n".join(errors))
-
-    # ── Store files to Supabase Storage ──
-    try:
-        audio_path = _store(sb, user.id, file, audio_bytes) if file and audio_bytes else None
-    except Exception as exc:
-        if "413" in str(exc) or "too large" in str(exc).lower() or "maximum allowed size" in str(exc).lower():
-            raise HTTPException(
-                status_code=422,
-                detail="File âm thanh quá lớn, vượt quá dung lượng tối đa cho phép của hệ thống.",
-            )
-        raise HTTPException(status_code=500, detail=f"Lỗi lưu file âm thanh: {str(exc)[:200]}")
-
-    try:
-        slide_path = _store(sb, user.id, slides, slide_bytes) if slides and slide_bytes else None
-    except Exception as exc:
-        if "413" in str(exc) or "too large" in str(exc).lower() or "maximum allowed size" in str(exc).lower():
-            raise HTTPException(
-                status_code=422,
-                detail="File PDF quá lớn, vượt quá dung lượng tối đa cho phép của hệ thống.",
-            )
-        raise HTTPException(status_code=500, detail=f"Lỗi lưu file PDF: {str(exc)[:200]}")
-
-    job_data: dict = {
-        "user_id": user.id,
-        "status": "pending",
-    }
-    if audio_path:
-        job_data["file_path"] = audio_path
-    if slide_path:
-        job_data["slide_path"] = slide_path
-
-    job = (
-        sb.table("jobs")
-        .insert(job_data)
-        .execute()
-        .data[0]
-    )
-
+    # Create job row up-front so we have a stable id to namespace storage paths.
+    job = sb.table("jobs").insert({"user_id": user.id, "status": "pending"}).execute().data[0]
     job_id = job["id"]
-    background_tasks.add_task(process_job, job_id, audio_path, slide_path)
 
-    return {"job_id": job_id}
+    result: dict = {"job_id": job_id, "audio": None, "slide": None}
+
+    if payload.audio_filename:
+        ext = os.path.splitext(payload.audio_filename)[1].lower()
+        path = f"{user.id}/{job_id}-audio{ext}"
+        signed = sb.storage.from_(_BUCKET).create_signed_upload_url(path)
+        result["audio"] = {"path": path, "token": signed["token"]}
+
+    if payload.slide_filename:
+        ext = os.path.splitext(payload.slide_filename)[1].lower()
+        path = f"{user.id}/{job_id}-slide{ext}"
+        signed = sb.storage.from_(_BUCKET).create_signed_upload_url(path)
+        result["slide"] = {"path": path, "token": signed["token"]}
+
+    return result
+
+
+@router.post("/complete")
+async def upload_complete(
+    payload: UploadCompleteRequest,
+    background_tasks: BackgroundTasks,
+    user=Depends(get_current_user),
+):
+    sb = get_supabase()
+
+    rows = (
+        sb.table("jobs")
+        .select("*")
+        .eq("id", payload.job_id)
+        .eq("user_id", user.id)
+        .execute()
+        .data
+    )
+    if not rows:
+        raise HTTPException(status_code=404, detail="Job not found")
+    job = rows[0]
+    if job["status"] != "pending":
+        raise HTTPException(status_code=409, detail=f"Job already in status '{job['status']}'.")
+
+    # Look up storage paths created at init time (namespace = "{user_id}/{job_id}-*").
+    audio_path: Optional[str] = None
+    slide_path: Optional[str] = None
+    try:
+        listing = sb.storage.from_(_BUCKET).list(user.id, {"limit": 1000, "search": payload.job_id})
+        for entry in listing or []:
+            name = entry.get("name", "")
+            if not name.startswith(f"{payload.job_id}-"):
+                continue
+            full = f"{user.id}/{name}"
+            if "-audio" in name:
+                audio_path = full
+            elif "-slide" in name:
+                slide_path = full
+    except Exception:
+        pass
+
+    if not audio_path and not slide_path:
+        raise HTTPException(
+            status_code=422,
+            detail="Không tìm thấy file đã upload. Vui lòng thử lại.",
+        )
+
+    update: dict = {}
+    if audio_path:
+        update["file_path"] = audio_path
+    if slide_path:
+        update["slide_path"] = slide_path
+    sb.table("jobs").update(update).eq("id", payload.job_id).execute()
+
+    background_tasks.add_task(process_job, payload.job_id, audio_path, slide_path)
+    return {"job_id": payload.job_id}

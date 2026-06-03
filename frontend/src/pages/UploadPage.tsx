@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import NavBar from "../components/NavBar";
 import { supabase } from "../lib/supabase";
 import { mapApiError, mapNetworkError } from "../lib/error-messages";
+import { transcodeWavToMp3 } from "../lib/transcode-audio";
+import { uploadToSignedUrl } from "../lib/direct-upload";
 
 const API = import.meta.env.VITE_API_URL as string;
 const ALLOWED_AUDIO_EXTS = [".mp3", ".mp4", ".m4a", ".wav"];
@@ -10,6 +12,8 @@ const ALLOWED_AUDIO_TYPES = ["audio/mpeg", "audio/mp4", "audio/x-m4a", "audio/m4
 const ALLOWED_SLIDE_EXTS = [".pdf", ".txt", ".md", ".json"];
 const ALLOWED_SLIDE_TYPES = ["application/pdf", "text/plain", "text/markdown", "text/x-markdown", "application/json"];
 const MAX_AUDIO_MINUTES = 60;
+// Audio files above this size get re-encoded to MP3 in the browser before upload.
+const TRANSCODE_THRESHOLD_BYTES = 30 * 1024 * 1024;
 
 function extOf(name: string): string {
   const i = name.lastIndexOf(".");
@@ -25,6 +29,8 @@ export default function UploadPage() {
   const [audio, setAudio] = useState<File | null>(null);
   const [pdf, setPdf] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [stage, setStage] = useState("");
+  const [transcodePct, setTranscodePct] = useState(0);
   const [error, setError] = useState("");
   const audioInput = useRef<HTMLInputElement>(null);
   const pdfInput = useRef<HTMLInputElement>(null);
@@ -71,35 +77,92 @@ export default function UploadPage() {
     setPdf(f);
   };
 
+  const resetUpload = () => {
+    setUploading(false);
+    setStage("");
+    setTranscodePct(0);
+  };
+
   const handleUpload = async () => {
     if (!audio && !pdf) return;
     setUploading(true);
     setError("");
 
-    const { data: sessionData } = await supabase.auth.getSession();
-    const token = sessionData.session?.access_token;
-    if (!token) { setError("Your session has expired."); setUploading(false); return; }
-
-    const form = new FormData();
-    if (audio) form.append("file", audio);
-    if (pdf) form.append("slides", pdf);
-
     try {
-      const res = await fetch(`${API}/upload`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-        body: form,
-      });
-      if (!res.ok) {
-        let body: unknown = null;
-        try { body = await res.json(); } catch { /* non-JSON response */ }
-        throw new Error(mapApiError(res.status, body));
+      // ── Phase A: shrink oversized WAV/M4A in the browser ──
+      let audioToUpload = audio;
+      const needsTranscode =
+        audio &&
+        audio.size > TRANSCODE_THRESHOLD_BYTES &&
+        /\.(wav|m4a|mp4)$/i.test(audio.name);
+
+      if (needsTranscode && audio) {
+        setStage(`Compressing audio (${formatSize(audio.size)})…`);
+        setTranscodePct(0);
+        audioToUpload = await transcodeWavToMp3(audio, setTranscodePct);
       }
-      const { job_id } = await res.json();
-      navigate(`/jobs/${job_id}`);
+
+      // ── Phase B1: init — get signed upload URLs ──
+      setStage("Preparing upload…");
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      if (!token) throw new Error("Your session has expired.");
+
+      const initRes = await fetch(`${API}/upload/init`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          audio_filename: audioToUpload?.name,
+          audio_size: audioToUpload?.size,
+          slide_filename: pdf?.name,
+          slide_size: pdf?.size,
+        }),
+      });
+      if (!initRes.ok) {
+        let body: unknown = null;
+        try { body = await initRes.json(); } catch { /* ignore */ }
+        throw new Error(mapApiError(initRes.status, body));
+      }
+      const init: {
+        job_id: string;
+        audio: { path: string; token: string } | null;
+        slide: { path: string; token: string } | null;
+      } = await initRes.json();
+
+      // ── Phase B2: direct upload to Supabase Storage ──
+      setStage("Uploading…");
+      const uploads: Promise<void>[] = [];
+      if (init.audio && audioToUpload) {
+        uploads.push(uploadToSignedUrl(init.audio.path, init.audio.token, audioToUpload));
+      }
+      if (init.slide && pdf) {
+        uploads.push(uploadToSignedUrl(init.slide.path, init.slide.token, pdf));
+      }
+      await Promise.all(uploads);
+
+      // ── Phase B3: complete — kick off the pipeline ──
+      setStage("Starting analysis…");
+      const completeRes = await fetch(`${API}/upload/complete`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ job_id: init.job_id }),
+      });
+      if (!completeRes.ok) {
+        let body: unknown = null;
+        try { body = await completeRes.json(); } catch { /* ignore */ }
+        throw new Error(mapApiError(completeRes.status, body));
+      }
+
+      navigate(`/jobs/${init.job_id}`);
     } catch (err: unknown) {
       setError(mapNetworkError(err));
-      setUploading(false);
+      resetUpload();
     }
   };
 
@@ -201,6 +264,20 @@ export default function UploadPage() {
             </div>
           )}
 
+          {/* Stage indicator (compress/upload progress) */}
+          {uploading && stage && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <div style={{ fontSize: 13, color: "var(--gray-700)" }}>
+                {stage}{stage.startsWith("Compressing") && transcodePct > 0 ? ` ${transcodePct}%` : ""}
+              </div>
+              {stage.startsWith("Compressing") && (
+                <div style={{ height: 4, width: "100%", background: "var(--gray-200)", borderRadius: 999, overflow: "hidden" }}>
+                  <div style={{ height: "100%", width: `${transcodePct}%`, background: "var(--blue)", borderRadius: 999, transition: "width .2s" }} />
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Submit */}
           <button
             disabled={(!audio && !pdf) || uploading}
@@ -215,7 +292,7 @@ export default function UploadPage() {
               transition: "background .2s",
             }}
           >
-            {uploading ? "Uploading…" : "Start analysis"}
+            {uploading ? (stage || "Uploading…") : "Start analysis"}
           </button>
         </div>
       </div>
