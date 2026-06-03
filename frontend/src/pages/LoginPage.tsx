@@ -28,10 +28,10 @@ export default function LoginPage() {
         </div>
 
         <h1 style={{ fontFamily: "'Google Sans', sans-serif", fontSize: 24, fontWeight: 400, color: "var(--gray-900)", marginBottom: 8 }}>
-          Đăng nhập vào MeetMind
+          Sign in to MeetMind
         </h1>
         <p style={{ fontSize: 14, color: "var(--gray-600)", marginBottom: 32, lineHeight: 1.5 }}>
-          Transcribe cuộc họp của bạn tự động với AI
+          Transcribe your meetings automatically with AI
         </p>
 
         <button
@@ -49,14 +49,14 @@ export default function LoginPage() {
           onMouseLeave={e => { e.currentTarget.style.background = "var(--surface)"; e.currentTarget.style.boxShadow = "none"; }}
         >
           <GoogleLogo />
-          Tiếp tục với Google
+          Continue with Google
         </button>
 
         <p style={{ marginTop: 24, fontSize: 12, color: "var(--gray-600)" }}>
-          Bằng cách đăng nhập, bạn đồng ý với{" "}
-          <a href="#" style={{ color: "var(--blue)", textDecoration: "none" }}>Điều khoản dịch vụ</a>
-          {" "}và{" "}
-          <a href="#" style={{ color: "var(--blue)", textDecoration: "none" }}>Chính sách bảo mật</a>
+          By signing in, you agree to our{" "}
+          <a href="#" style={{ color: "var(--blue)", textDecoration: "none" }}>Terms of Service</a>
+          {" "}and{" "}
+          <a href="#" style={{ color: "var(--blue)", textDecoration: "none" }}>Privacy Policy</a>
         </p>
       </div>
     </div>

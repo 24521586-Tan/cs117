@@ -14,7 +14,7 @@ export default function AuthCallbackPage() {
         subscription.unsubscribe();
         navigate("/upload", { replace: true });
       } else if (event === "SIGNED_OUT" || (!session && event !== "INITIAL_SESSION")) {
-        setError("Xác thực thất bại. Vui lòng thử lại.");
+        setError("Authentication failed. Please try again.");
       }
     });
 
@@ -34,7 +34,7 @@ export default function AuthCallbackPage() {
       <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--surface)" }}>
         <div style={{ background: "var(--surface)", border: "1px solid var(--gray-200)", borderRadius: "var(--radius-lg)", padding: "48px 40px", textAlign: "center", maxWidth: 360 }}>
           <p style={{ color: "var(--red)", marginBottom: 16, fontSize: 14 }}>{error}</p>
-          <a href="/login" style={{ color: "var(--blue)", fontSize: 14, textDecoration: "none" }}>Quay lại đăng nhập</a>
+          <a href="/login" style={{ color: "var(--blue)", fontSize: 14, textDecoration: "none" }}>Back to sign in</a>
         </div>
       </div>
     );
@@ -51,7 +51,7 @@ export default function AuthCallbackPage() {
           />
         </svg>
         <style>{`@keyframes meetmind-spin { 0% { stroke-dashoffset: 220; } 50% { stroke-dashoffset: 55; } 100% { stroke-dashoffset: 220; } }`}</style>
-        <p style={{ fontFamily: "'Google Sans', sans-serif", fontSize: 16, color: "var(--gray-600)" }}>Đang đăng nhập…</p>
+        <p style={{ fontFamily: "'Google Sans', sans-serif", fontSize: 16, color: "var(--gray-600)" }}>Signing in…</p>
       </div>
     </div>
   );

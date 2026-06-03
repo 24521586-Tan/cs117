@@ -8,9 +8,9 @@ const POLL_MS = 3000;
 
 // Pipeline stages, in order. Index is derived from the job status.
 const STEPS = [
-  "Tạo bản ghi lời nói (faster-whisper)",
-  "Phân tích nội dung (Gemini)",
-  "Đồng bộ sang Notion",
+  "Transcribing speech (faster-whisper)",
+  "Analyzing content (Gemini)",
+  "Syncing to Notion",
 ];
 
 const STATUS_STEP: Record<string, number> = {
@@ -50,7 +50,7 @@ export default function JobPage() {
       // server hiccup and keep polling (the job runs server-side regardless).
       if (res.status === 404) {
         stop();
-        setError("Không tìm thấy công việc này.");
+        setError("This job was not found.");
         return;
       }
       if (!res.ok) {
@@ -68,7 +68,7 @@ export default function JobPage() {
         setNotionUrl(data.notion_url ?? null);
       } else if (data.status === "failed") {
         stop();
-        setError(data.error || "Phân tích thất bại. Vui lòng thử lại.");
+        setError(data.error || "Analysis failed. Please try again.");
       }
     } catch {
       // Network blip / backend restart / wifi change — the job keeps running on the
@@ -144,13 +144,13 @@ function ProcessingView({ status, elapsed, progress, disconnected }: { status: s
         `}</style>
 
         <div>
-          <div style={{ fontFamily: "'Google Sans', sans-serif", fontSize: 22, fontWeight: 400, color: "var(--gray-900)" }}>Đang xử lý cuộc họp</div>
-          <div style={{ fontSize: 14, color: "var(--gray-600)", marginTop: 8 }}>Có thể mất vài phút với bản ghi dài · Bạn có thể đóng tab</div>
+          <div style={{ fontFamily: "'Google Sans', sans-serif", fontSize: 22, fontWeight: 400, color: "var(--gray-900)" }}>Processing your meeting</div>
+          <div style={{ fontSize: 14, color: "var(--gray-600)", marginTop: 8 }}>This can take a few minutes for long recordings · You can close this tab</div>
         </div>
 
         {disconnected && (
           <div style={{ width: "100%", background: "var(--red-light)", color: "var(--red)", borderRadius: "var(--radius)", padding: "10px 16px", fontSize: 13, textAlign: "center" }}>
-            Mất kết nối tới máy chủ · đang thử lại… (công việc vẫn đang chạy trên máy chủ)
+            Lost connection to the server · retrying… (the job keeps running server-side)
           </div>
         )}
 
@@ -183,7 +183,7 @@ function ProcessingView({ status, elapsed, progress, disconnected }: { status: s
               <div style={{ height: "100%", width: `${progress}%`, background: "var(--blue)", borderRadius: 999, transition: "width 0.4s ease" }} />
             </div>
             <div style={{ fontSize: 12, color: "var(--gray-600)", marginTop: 6, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
-              {progress}% · đã chờ {m}:{s.toString().padStart(2, "0")}
+              {progress}% · elapsed {m}:{s.toString().padStart(2, "0")}
             </div>
           </div>
         )}
@@ -200,21 +200,21 @@ function DoneView({ notionUrl, jobId }: { notionUrl: string | null; jobId: strin
         <div style={{ width: 56, height: 56, borderRadius: "50%", background: "var(--green-light)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px" }}>
           <svg viewBox="0 0 24 24" width="30" height="30" fill="var(--green)"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" /></svg>
         </div>
-        <p style={{ fontSize: 20, fontFamily: "'Google Sans', sans-serif", color: "var(--gray-900)", marginBottom: 8 }}>Hoàn thành!</p>
+        <p style={{ fontSize: 20, fontFamily: "'Google Sans', sans-serif", color: "var(--gray-900)", marginBottom: 8 }}>Done!</p>
         <p style={{ fontSize: 14, color: "var(--gray-600)", marginBottom: 28 }}>
-          Trang ghi chú (Tóm tắt + To-do) đã được tạo trên Notion · Job #{jobId.slice(0, 8)}
+          Your Notion page (Summary + To-do) has been created · Job #{jobId.slice(0, 8)}
         </p>
         {notionUrl ? (
           <a href={notionUrl} target="_blank" rel="noopener noreferrer"
             style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "12px 28px", background: "var(--blue)", color: "white", borderRadius: 4, fontFamily: "'Google Sans', sans-serif", fontSize: 14, fontWeight: 500, textDecoration: "none" }}>
-            Mở trang Notion
+            Open Notion page
             <svg viewBox="0 0 24 24" width="16" height="16" fill="white"><path d="M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z" /></svg>
           </a>
         ) : (
-          <p style={{ fontSize: 13, color: "var(--gray-600)" }}>Không tìm thấy link Notion (kiểm tra cấu hình NOTION_*).</p>
+          <p style={{ fontSize: 13, color: "var(--gray-600)" }}>Notion link not found (check the NOTION_* configuration).</p>
         )}
         <div style={{ marginTop: 24 }}>
-          <a href="/upload" style={{ fontSize: 13, color: "var(--blue)", textDecoration: "none" }}>← Tải lên cuộc họp khác</a>
+          <a href="/upload" style={{ fontSize: 13, color: "var(--blue)", textDecoration: "none" }}>← Upload another meeting</a>
         </div>
       </div>
     </div>
@@ -229,10 +229,10 @@ function ErrorView({ message }: { message: string }) {
         <div style={{ width: 48, height: 48, borderRadius: "50%", background: "var(--red-light)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
           <svg viewBox="0 0 24 24" width="24" height="24" fill="var(--red)"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" /></svg>
         </div>
-        <p style={{ fontSize: 16, fontFamily: "'Google Sans', sans-serif", color: "var(--gray-900)", marginBottom: 8 }}>Phân tích thất bại</p>
+        <p style={{ fontSize: 16, fontFamily: "'Google Sans', sans-serif", color: "var(--gray-900)", marginBottom: 8 }}>Analysis failed</p>
         <p style={{ fontSize: 13, color: "var(--gray-600)", marginBottom: 24, wordBreak: "break-word" }}>{message}</p>
         <a href="/upload" style={{ display: "inline-flex", padding: "10px 24px", background: "var(--blue)", color: "white", borderRadius: 4, fontFamily: "'Google Sans', sans-serif", fontSize: 14, fontWeight: 500, textDecoration: "none" }}>
-          Thử lại
+          Try again
         </a>
       </div>
     </div>

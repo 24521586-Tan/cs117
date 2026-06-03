@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import NavBar from "../components/NavBar";
 import { supabase } from "../lib/supabase";
+import { mapApiError, mapNetworkError } from "../lib/error-messages";
 
 const API = import.meta.env.VITE_API_URL as string;
 
@@ -16,12 +17,12 @@ type Job = {
 };
 
 const STATUS_LABEL: Record<string, string> = {
-  pending: "Đang chờ",
-  transcribing: "Đang tạo bản ghi",
-  analyzing: "Đang phân tích",
-  syncing: "Đang đồng bộ Notion",
-  done: "Hoàn thành",
-  failed: "Thất bại",
+  pending: "Pending",
+  transcribing: "Transcribing",
+  analyzing: "Analyzing",
+  syncing: "Syncing to Notion",
+  done: "Done",
+  failed: "Failed",
 };
 
 const TERMINAL = new Set(["done", "failed"]);
@@ -37,7 +38,7 @@ function formatDate(iso: string | null): string {
   if (!iso) return "";
   const d = new Date(iso);
   if (isNaN(d.getTime())) return "";
-  return d.toLocaleString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+  return d.toLocaleString("en-US", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
 export default function HistoryPage() {
@@ -51,12 +52,16 @@ export default function HistoryPage() {
       const { data } = await supabase.auth.getSession();
       const token = data.session?.access_token ?? "";
       const res = await fetch(`${API}/jobs`, { headers: { Authorization: `Bearer ${token}` } });
-      if (!res.ok) throw new Error("Không tải được lịch sử công việc");
+      if (!res.ok) {
+        let body: unknown = null;
+        try { body = await res.json(); } catch { /* ignore */ }
+        throw new Error(mapApiError(res.status, body));
+      }
       const body = await res.json();
       setJobs(body.jobs ?? []);
       setError("");
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Lỗi không xác định");
+      setError(mapNetworkError(e));
     } finally {
       setLoading(false);
     }
@@ -78,20 +83,20 @@ export default function HistoryPage() {
         <div style={{ width: "100%", maxWidth: 720 }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
             <h2 style={{ fontFamily: "'Google Sans', sans-serif", fontSize: 26, fontWeight: 400, color: "var(--gray-900)" }}>
-              Lịch sử cuộc họp
+              Meeting history
             </h2>
             <a href="/upload" style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "10px 20px", background: "var(--blue)", color: "white", borderRadius: 4, fontFamily: "'Google Sans', sans-serif", fontSize: 14, fontWeight: 500, textDecoration: "none" }}>
-              + Cuộc họp mới
+              + New meeting
             </a>
           </div>
 
-          {loading && <p style={{ color: "var(--gray-600)", fontSize: 14 }}>Đang tải…</p>}
+          {loading && <p style={{ color: "var(--gray-600)", fontSize: 14 }}>Loading…</p>}
           {error && <p style={{ color: "var(--red)", fontSize: 14 }}>{error}</p>}
 
           {!loading && !error && jobs.length === 0 && (
             <div style={{ background: "var(--surface)", borderRadius: "var(--radius-lg)", boxShadow: "var(--shadow-1)", padding: "48px 24px", textAlign: "center" }}>
-              <p style={{ fontSize: 15, color: "var(--gray-600)", marginBottom: 16 }}>Chưa có cuộc họp nào.</p>
-              <a href="/upload" style={{ color: "var(--blue)", fontSize: 14, textDecoration: "none" }}>Tải lên cuộc họp đầu tiên →</a>
+              <p style={{ fontSize: 15, color: "var(--gray-600)", marginBottom: 16 }}>No meetings yet.</p>
+              <a href="/upload" style={{ color: "var(--blue)", fontSize: 14, textDecoration: "none" }}>Upload your first meeting →</a>
             </div>
           )}
 
@@ -110,7 +115,7 @@ export default function HistoryPage() {
                 >
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontFamily: "'Google Sans', sans-serif", fontSize: 15, color: "var(--gray-900)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                      {job.title || `Cuộc họp #${job.job_id.slice(0, 8)}`}
+                      {job.title || `Meeting #${job.job_id.slice(0, 8)}`}
                     </div>
                     <div style={{ fontSize: 12, color: "var(--gray-600)", marginTop: 4 }}>
                       {formatDate(job.created_at)}
@@ -125,11 +130,11 @@ export default function HistoryPage() {
                   {job.status === "done" && job.notion_url ? (
                     <a href={job.notion_url} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
                       style={{ flexShrink: 0, fontSize: 13, color: "var(--blue)", textDecoration: "none", fontWeight: 500 }}>
-                      Mở Notion ↗
+                      Open Notion ↗
                     </a>
                   ) : (
                     <span style={{ flexShrink: 0, fontSize: 13, color: "var(--gray-400)" }}>
-                      {active ? "Xem tiếp →" : "Chi tiết →"}
+                      {active ? "View progress →" : "Details →"}
                     </span>
                   )}
                 </div>

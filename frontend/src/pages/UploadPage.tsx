@@ -2,10 +2,19 @@ import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import NavBar from "../components/NavBar";
 import { supabase } from "../lib/supabase";
+import { mapApiError, mapNetworkError } from "../lib/error-messages";
 
 const API = import.meta.env.VITE_API_URL as string;
-const ALLOWED_AUDIO = ["audio/mpeg", "audio/mp4", "audio/x-m4a", "audio/m4a", "audio/wav", "audio/x-wav", "audio/wave"];
+const ALLOWED_AUDIO_EXTS = [".mp3", ".mp4", ".m4a", ".wav"];
+const ALLOWED_AUDIO_TYPES = ["audio/mpeg", "audio/mp4", "audio/x-m4a", "audio/m4a", "audio/wav", "audio/x-wav", "audio/wave", "video/mp4"];
+const ALLOWED_SLIDE_EXTS = [".pdf", ".txt", ".md", ".json"];
+const ALLOWED_SLIDE_TYPES = ["application/pdf", "text/plain", "text/markdown", "text/x-markdown", "application/json"];
 const MAX_AUDIO_MINUTES = 60;
+
+function extOf(name: string): string {
+  const i = name.lastIndexOf(".");
+  return i >= 0 ? name.slice(i).toLowerCase() : "";
+}
 
 function formatSize(bytes: number) {
   return (bytes / 1024 / 1024).toFixed(1) + " MB";
@@ -22,8 +31,11 @@ export default function UploadPage() {
   const navigate = useNavigate();
 
   const handleAudio = (f: File) => {
-    if (!ALLOWED_AUDIO.includes(f.type)) {
-      setError("Âm thanh chỉ hỗ trợ .mp3, .m4a hoặc .wav.");
+    const ext = extOf(f.name);
+    const typeOk = ALLOWED_AUDIO_TYPES.includes(f.type);
+    const extOk = ALLOWED_AUDIO_EXTS.includes(ext);
+    if (!typeOk && !extOk) {
+      setError("Audio must be .mp3, .mp4, .m4a, or .wav.");
       return;
     }
     // Check audio duration using HTML5 Audio API
@@ -33,7 +45,7 @@ export default function UploadPage() {
       URL.revokeObjectURL(url);
       const durationMin = tempAudio.duration / 60;
       if (durationMin > MAX_AUDIO_MINUTES) {
-        setError(`File âm thanh dài ${Math.round(durationMin)} phút, vượt quá giới hạn ${MAX_AUDIO_MINUTES} phút.`);
+        setError(`Audio is ${Math.round(durationMin)} minutes long, exceeding the ${MAX_AUDIO_MINUTES}-minute limit.`);
         return;
       }
       setError("");
@@ -48,8 +60,11 @@ export default function UploadPage() {
   };
 
   const handlePdf = (f: File) => {
-    if (f.type !== "application/pdf") {
-      setError("Slide phải là file .pdf.");
+    const ext = extOf(f.name);
+    const typeOk = ALLOWED_SLIDE_TYPES.includes(f.type);
+    const extOk = ALLOWED_SLIDE_EXTS.includes(ext);
+    if (!typeOk && !extOk) {
+      setError("Slide must be .pdf, .txt, .md, or .json.");
       return;
     }
     setError("");
@@ -63,7 +78,7 @@ export default function UploadPage() {
 
     const { data: sessionData } = await supabase.auth.getSession();
     const token = sessionData.session?.access_token;
-    if (!token) { setError("Phiên đăng nhập hết hạn."); setUploading(false); return; }
+    if (!token) { setError("Your session has expired."); setUploading(false); return; }
 
     const form = new FormData();
     if (audio) form.append("file", audio);
@@ -76,31 +91,14 @@ export default function UploadPage() {
         body: form,
       });
       if (!res.ok) {
-        let msg = "";
-        try {
-          const body = await res.json();
-          // FastAPI returns { detail: "..." } or { detail: [{msg: "..."}] }
-          if (typeof body.detail === "string") {
-            msg = body.detail;
-          } else if (Array.isArray(body.detail)) {
-            msg = body.detail.map((e: { msg?: string }) => e.msg).filter(Boolean).join("; ");
-          } else if (body.message) {
-            msg = body.message;
-          }
-        } catch {
-          // Response wasn't JSON — try plain text
-          try { msg = await res.text(); } catch { /* ignore */ }
-        }
-        throw new Error(msg || `Lỗi máy chủ (${res.status}). Vui lòng thử lại.`);
+        let body: unknown = null;
+        try { body = await res.json(); } catch { /* non-JSON response */ }
+        throw new Error(mapApiError(res.status, body));
       }
       const { job_id } = await res.json();
       navigate(`/jobs/${job_id}`);
     } catch (err: unknown) {
-      if (err instanceof TypeError && err.message === "Failed to fetch") {
-        setError("Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng.");
-      } else {
-        setError(err instanceof Error ? err.message : "Upload thất bại. Vui lòng thử lại.");
-      }
+      setError(mapNetworkError(err));
       setUploading(false);
     }
   };
@@ -113,10 +111,10 @@ export default function UploadPage() {
         {/* Header */}
         <div style={{ textAlign: "center", maxWidth: 560 }}>
           <h2 style={{ fontFamily: "'Google Sans', sans-serif", fontSize: 28, fontWeight: 400, color: "var(--gray-900)", marginBottom: 8 }}>
-            Tải lên cuộc họp
+            Upload a meeting
           </h2>
           <p style={{ fontSize: 14, color: "var(--gray-600)" }}>
-            Ghi âm (.mp3 / .m4a / .wav · tối đa 60 phút) và/hoặc slide (.pdf · tối đa 60 trang) · Tiếng Anh
+            Audio (.mp3 / .mp4 / .m4a / .wav · up to 60 min) and/or slides (.pdf / .txt / .md / .json · up to 60 pages) · English
           </p>
         </div>
 
@@ -146,12 +144,12 @@ export default function UploadPage() {
               </svg>
             </div>
             <div style={{ fontFamily: "'Google Sans', sans-serif", fontSize: 16, fontWeight: 500, color: "var(--gray-900)" }}>
-              {audio ? audio.name : "Ghi âm cuộc họp"}
+              {audio ? audio.name : "Meeting recording"}
             </div>
             <div style={{ fontSize: 13, color: "var(--gray-600)" }}>
-              {audio ? `${formatSize(audio.size)} · Đã chọn` : <span>Kéo thả hoặc <span style={{ color: "var(--blue)" }}>chọn file âm thanh</span></span>}
+              {audio ? `${formatSize(audio.size)} · Selected` : <span>Drag and drop or <span style={{ color: "var(--blue)" }}>choose an audio file</span></span>}
             </div>
-            <input ref={audioInput} type="file" accept=".mp3,.m4a,.wav,audio/mpeg,audio/mp4,audio/x-m4a,audio/wav" style={{ display: "none" }} onChange={e => e.target.files?.[0] && handleAudio(e.target.files[0])} />
+            <input ref={audioInput} type="file" accept=".mp3,.mp4,.m4a,.wav,audio/mpeg,audio/mp4,audio/x-m4a,audio/wav,video/mp4" style={{ display: "none" }} onChange={e => e.target.files?.[0] && handleAudio(e.target.files[0])} />
           </div>
 
           {/* PDF picker */}
@@ -173,13 +171,13 @@ export default function UploadPage() {
             </div>
             <div style={{ flex: 1 }}>
               <div style={{ fontFamily: "'Google Sans', sans-serif", fontSize: 15, fontWeight: 500, color: "var(--gray-900)" }}>
-                {pdf ? pdf.name : "Slide trình chiếu (.pdf)"}
+                {pdf ? pdf.name : "Slides (.pdf / .txt / .md / .json)"}
               </div>
               <div style={{ fontSize: 13, color: "var(--gray-600)" }}>
-                {pdf ? `${formatSize(pdf.size)} · Đã chọn` : "Bấm để chọn file PDF"}
+                {pdf ? `${formatSize(pdf.size)} · Selected` : "Click to choose a slide file"}
               </div>
             </div>
-            <input ref={pdfInput} type="file" accept=".pdf,application/pdf" style={{ display: "none" }} onChange={e => e.target.files?.[0] && handlePdf(e.target.files[0])} />
+            <input ref={pdfInput} type="file" accept=".pdf,.txt,.md,.json,application/pdf,text/plain,text/markdown,application/json" style={{ display: "none" }} onChange={e => e.target.files?.[0] && handlePdf(e.target.files[0])} />
           </div>
 
           {error && (
@@ -217,7 +215,7 @@ export default function UploadPage() {
               transition: "background .2s",
             }}
           >
-            {uploading ? "Đang tải lên…" : "Bắt đầu phân tích"}
+            {uploading ? "Uploading…" : "Start analysis"}
           </button>
         </div>
       </div>
