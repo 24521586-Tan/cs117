@@ -148,7 +148,7 @@ cd frontend
 npm run dev    # → http://localhost:5173
 ```
 
-**Flow:** Sign in → drop audio file → pick slide PDF → **Bắt đầu phân tích** → watch stages → **Mở trang Notion**.
+**Flow:** Sign in → drop audio file → pick slide file → **Start analysis** → watch stages → **Open Notion page**.
 
 ### Option C — Pipeline Evaluation (Đánh giá hiệu năng)
 
@@ -232,6 +232,6 @@ pending → transcribing → analyzing → syncing → done | failed
 
 ## Constraints
 
-- Audio: English, `.mp3/.m4a/.wav`, ≤ 60 min, low background noise
-- Slides: text-based `.pdf`, ≤ 50 pages
+- Audio: English, `.mp3/.mp4/.m4a/.wav`, ≤ 60 min, low background noise
+- Slides: `.pdf` (text-based) / `.txt` / `.md` / `.json`, ≤ 60 pages or 200k chars
 - Audio + PDF are **auto-deleted** from Storage after the Notion page is created
