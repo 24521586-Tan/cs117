@@ -23,14 +23,16 @@ const STATUS_LABEL: Record<string, string> = {
   syncing: "Syncing to Notion",
   done: "Done",
   failed: "Failed",
+  cancelled: "Cancelled",
 };
 
-const TERMINAL = new Set(["done", "failed"]);
+const TERMINAL = new Set(["done", "failed", "cancelled"]);
 const isActive = (s: string) => !TERMINAL.has(s);
 
 function badgeColors(status: string): { bg: string; fg: string } {
   if (status === "done") return { bg: "var(--green-light)", fg: "var(--green)" };
   if (status === "failed") return { bg: "var(--red-light)", fg: "var(--red)" };
+  if (status === "cancelled") return { bg: "var(--gray-100)", fg: "var(--gray-600)" };
   return { bg: "var(--blue-light)", fg: "var(--blue)" };
 }
 

@@ -27,6 +27,17 @@ def process_job(job_id: str, audio_path: Optional[str], slide_path: Optional[str
     def upd(**fields):
         sb.table("jobs").update(fields).eq("id", job_id).execute()
 
+    def is_cancelled() -> bool:
+        row = sb.table("jobs").select("status").eq("id", job_id).execute().data
+        return bool(row) and row[0].get("status") == "cancelled"
+
+    class _Cancelled(Exception):
+        pass
+
+    def check_cancelled() -> None:
+        if is_cancelled():
+            raise _Cancelled()
+
     # Write progress at most every 5% to keep DB chatter (and connection load) low.
     last_written = -5
 
@@ -37,6 +48,8 @@ def process_job(job_id: str, audio_path: Optional[str], slide_path: Optional[str
             upd(progress=p)
 
     try:
+        check_cancelled()
+
         # ── Step 1: Transcribe audio (skip if no audio uploaded) ──
         if audio_path:
             upd(status="transcribing", progress=0)
@@ -45,6 +58,8 @@ def process_job(job_id: str, audio_path: Optional[str], slide_path: Optional[str
         else:
             transcript = {"segments": [], "language": "en"}
             upd(transcript=transcript, progress=100)
+
+        check_cancelled()
 
         # ── Step 2: Extract slide text (skip if no PDF uploaded) ──
         slides_prompt = ""
@@ -57,16 +72,29 @@ def process_job(job_id: str, audio_path: Optional[str], slide_path: Optional[str
             upd(slide_text=slides["markdown"])
             slides_prompt = pages_as_prompt(slides["pages"])
 
+        check_cancelled()
+
         # ── Step 3: Analyze with LLM ──
         upd(status="analyzing")
         analysis = analyze_meeting(transcript, slides_prompt)
         upd(analysis=analysis, status="syncing")
+
+        check_cancelled()
 
         # ── Step 4: Sync to Notion ──
         notion_url = create_meeting_page(analysis)
         upd(notion_url=notion_url, status="done")
 
         # Privacy: remove uploaded source files once the Notion page exists.
+        try:
+            paths_to_remove = [p for p in (audio_path, slide_path) if p]
+            if paths_to_remove:
+                sb.storage.from_(_BUCKET).remove(paths_to_remove)
+        except Exception:
+            pass
+
+    except _Cancelled:
+        # User-initiated cancel — clean up uploaded files but leave status as 'cancelled'.
         try:
             paths_to_remove = [p for p in (audio_path, slide_path) if p]
             if paths_to_remove:

@@ -90,3 +90,21 @@ async def get_job_result(job_id: str, user=Depends(get_current_user)):
         "notion_url": job.get("notion_url"),
         "analysis": job.get("analysis"),
     }
+
+
+TERMINAL_STATUSES = {"done", "failed", "cancelled"}
+
+
+@router.post("/{job_id}/cancel")
+async def cancel_job(job_id: str, user=Depends(get_current_user)):
+    """Mark a running job as cancelled. The pipeline polls this flag between
+    stages and bails out gracefully (mid-stage work in progress may still finish)."""
+    job = _get_job(job_id, user.id)
+    if job["status"] in TERMINAL_STATUSES:
+        return {"job_id": job["id"], "status": job["status"]}
+    sb = get_supabase()
+    sb.table("jobs").update({
+        "status": "cancelled",
+        "error": "Cancelled by user",
+    }).eq("id", job_id).execute()
+    return {"job_id": job_id, "status": "cancelled"}

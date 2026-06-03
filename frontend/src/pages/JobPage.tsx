@@ -28,6 +28,7 @@ export default function JobPage() {
   const [notionUrl, setNotionUrl] = useState<string | null>(null);
   const [elapsed, setElapsed] = useState(0);
   const [error, setError] = useState("");
+  const [cancelling, setCancelling] = useState(false);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
   const ticker = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -69,6 +70,9 @@ export default function JobPage() {
       } else if (data.status === "failed") {
         stop();
         setError(data.error || "Analysis failed. Please try again.");
+      } else if (data.status === "cancelled") {
+        stop();
+        setError(data.error || "Job cancelled by user.");
       }
     } catch {
       // Network blip / backend restart / wifi change — the job keeps running on the
@@ -86,7 +90,27 @@ export default function JobPage() {
   }, [id]);
 
   const isDone = status === "done";
-  const isFailed = status === "failed" || !!error;
+  const isFailed = status === "failed" || status === "cancelled" || !!error;
+
+  const handleStop = async () => {
+    if (cancelling) return;
+    if (!confirm("Stop this job? Any progress so far will be discarded.")) return;
+    setCancelling(true);
+    try {
+      const token = await getToken();
+      const res = await fetch(`${API}/jobs/${id}/cancel`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      stop();
+      setStatus("cancelled");
+      setError("Job cancelled by user.");
+    } catch {
+      setCancelling(false);
+      setDisconnected(true);
+    }
+  };
 
   // Warn before leaving while the job is still being processed.
   useEffect(() => {
@@ -104,15 +128,15 @@ export default function JobPage() {
     <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
       <NavBar />
 
-      {!isDone && !isFailed && <ProcessingView status={status} elapsed={elapsed} progress={progress} disconnected={disconnected} />}
-      {isFailed && <ErrorView message={error} />}
+      {!isDone && !isFailed && <ProcessingView status={status} elapsed={elapsed} progress={progress} disconnected={disconnected} onStop={handleStop} cancelling={cancelling} />}
+      {isFailed && <ErrorView message={error} cancelled={status === "cancelled"} />}
       {isDone && <DoneView notionUrl={notionUrl} jobId={id!} />}
     </div>
   );
 }
 
 /* ── Processing view ── */
-function ProcessingView({ status, elapsed, progress, disconnected }: { status: string; elapsed: number; progress: number; disconnected: boolean }) {
+function ProcessingView({ status, elapsed, progress, disconnected, onStop, cancelling }: { status: string; elapsed: number; progress: number; disconnected: boolean; onStop: () => void; cancelling: boolean }) {
   const stepIndex = STATUS_STEP[status] ?? 0;
   const m = Math.floor(elapsed / 60);
   const s = elapsed % 60;
@@ -187,6 +211,27 @@ function ProcessingView({ status, elapsed, progress, disconnected }: { status: s
             </div>
           </div>
         )}
+
+        <button
+          onClick={onStop}
+          disabled={cancelling}
+          style={{
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+            padding: "8px 20px",
+            background: "transparent",
+            color: cancelling ? "var(--gray-400)" : "var(--red)",
+            border: `1px solid ${cancelling ? "var(--gray-200)" : "var(--red)"}`,
+            borderRadius: 4,
+            fontFamily: "'Google Sans', sans-serif", fontSize: 13, fontWeight: 500,
+            cursor: cancelling ? "not-allowed" : "pointer",
+            transition: "background .2s",
+          }}
+          onMouseEnter={e => { if (!cancelling) e.currentTarget.style.background = "var(--red-light)"; }}
+          onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+        >
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M6 6h12v12H6z" /></svg>
+          {cancelling ? "Stopping…" : "Stop"}
+        </button>
       </div>
     </div>
   );
@@ -221,15 +266,17 @@ function DoneView({ notionUrl, jobId }: { notionUrl: string | null; jobId: strin
   );
 }
 
-/* ── Error view ── */
-function ErrorView({ message }: { message: string }) {
+/* ── Error / cancelled view ── */
+function ErrorView({ message, cancelled }: { message: string; cancelled?: boolean }) {
   return (
     <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
       <div style={{ background: "var(--surface)", borderRadius: "var(--radius-lg)", boxShadow: "var(--shadow-1)", padding: "40px 48px", textAlign: "center", maxWidth: 440 }}>
         <div style={{ width: 48, height: 48, borderRadius: "50%", background: "var(--red-light)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
-          <svg viewBox="0 0 24 24" width="24" height="24" fill="var(--red)"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" /></svg>
+          {cancelled
+            ? <svg viewBox="0 0 24 24" width="24" height="24" fill="var(--red)"><path d="M6 6h12v12H6z" /></svg>
+            : <svg viewBox="0 0 24 24" width="24" height="24" fill="var(--red)"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" /></svg>}
         </div>
-        <p style={{ fontSize: 16, fontFamily: "'Google Sans', sans-serif", color: "var(--gray-900)", marginBottom: 8 }}>Analysis failed</p>
+        <p style={{ fontSize: 16, fontFamily: "'Google Sans', sans-serif", color: "var(--gray-900)", marginBottom: 8 }}>{cancelled ? "Job cancelled" : "Analysis failed"}</p>
         <p style={{ fontSize: 13, color: "var(--gray-600)", marginBottom: 24, wordBreak: "break-word" }}>{message}</p>
         <a href="/upload" style={{ display: "inline-flex", padding: "10px 24px", background: "var(--blue)", color: "white", borderRadius: 4, fontFamily: "'Google Sans', sans-serif", fontSize: 14, fontWeight: 500, textDecoration: "none" }}>
           Try again
