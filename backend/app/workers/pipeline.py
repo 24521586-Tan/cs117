@@ -13,7 +13,9 @@ from typing import Optional
 from app.core.supabase import new_supabase
 from app.workers.analyze import analyze_meeting
 from app.workers.notion_sync import create_meeting_page
-from app.workers.slides import MAX_PAGES, extract_slides, pages_as_prompt
+import os
+
+from app.workers.slides import MAX_PAGES, extract_slides_any, pages_as_prompt
 from app.workers.transcribe import transcribe
 
 _BUCKET = "audio-files"
@@ -47,10 +49,11 @@ def process_job(job_id: str, audio_path: Optional[str], slide_path: Optional[str
         # ── Step 2: Extract slide text (skip if no PDF uploaded) ──
         slides_prompt = ""
         if slide_path:
-            pdf_bytes = sb.storage.from_(_BUCKET).download(slide_path)
-            slides = extract_slides(pdf_bytes)
+            slide_bytes = sb.storage.from_(_BUCKET).download(slide_path)
+            slide_ext = os.path.splitext(slide_path)[1].lower()
+            slides = extract_slides_any(slide_bytes, slide_ext)
             if slides["page_count"] > MAX_PAGES:
-                raise ValueError(f"File PDF có {slides['page_count']} trang, vượt quá giới hạn {MAX_PAGES} trang.")
+                raise ValueError(f"Slide có {slides['page_count']} trang, vượt quá giới hạn {MAX_PAGES} trang.")
             upd(slide_text=slides["markdown"])
             slides_prompt = pages_as_prompt(slides["pages"])
 

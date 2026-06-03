@@ -20,7 +20,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from app.core.supabase import get_supabase  # noqa: E402
 from app.workers.analyze import analyze_meeting  # noqa: E402
 from app.workers.notion_sync import create_meeting_page  # noqa: E402
-from app.workers.slides import MAX_PAGES, extract_slides, pages_as_prompt  # noqa: E402
+from app.workers.slides import MAX_PAGES, extract_slides_any, pages_as_prompt  # noqa: E402
 from app.workers.transcribe import transcribe  # noqa: E402
 
 _BUCKET = "audio-files"
@@ -28,8 +28,8 @@ _BUCKET = "audio-files"
 
 def main() -> int:
     ap = argparse.ArgumentParser(description="Run the meeting -> Notion pipeline locally.")
-    ap.add_argument("--audio", required=True, help="Path to meeting audio (.mp3/.m4a/.wav)")
-    ap.add_argument("--pdf", required=True, help="Path to slide PDF")
+    ap.add_argument("--audio", required=True, help="Path to meeting audio (.mp3/.mp4/.m4a/.wav)")
+    ap.add_argument("--pdf", required=True, help="Path to slide (.pdf/.txt/.md/.json)")
     args = ap.parse_args()
 
     audio = Path(args.audio)
@@ -53,10 +53,10 @@ def main() -> int:
         print("→ Transcribing (faster-whisper / mock)…")
         transcript = transcribe(audio_path)
 
-        print("→ Extracting slides (markitdown)…")
-        slides = extract_slides(pdf.read_bytes())
+        print("→ Extracting slides…")
+        slides = extract_slides_any(pdf.read_bytes(), pdf.suffix.lower())
         if slides["page_count"] > MAX_PAGES:
-            print(f"❌ PDF has {slides['page_count']} pages (max {MAX_PAGES}).")
+            print(f"❌ Slide has {slides['page_count']} pages (max {MAX_PAGES}).")
             return 1
 
         print("→ Analyzing with Gemini…")

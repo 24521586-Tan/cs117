@@ -1,4 +1,5 @@
 import io
+import os
 import re
 import unicodedata
 import uuid
@@ -16,12 +17,23 @@ from app.workers.pipeline import process_job
 router = APIRouter(prefix="/upload", tags=["upload"])
 bearer = HTTPBearer()
 
-ALLOWED_AUDIO = {"audio/mpeg", "audio/mp4", "audio/x-m4a", "audio/m4a",
-                 "audio/wav", "audio/x-wav", "audio/wave"}
-ALLOWED_PDF = {"application/pdf"}
+# Matches evaluation/case_discovery.py so prod and eval accept the same inputs.
+ALLOWED_AUDIO_EXTS = {".mp3", ".mp4", ".m4a", ".wav"}
+ALLOWED_AUDIO_TYPES = {
+    "audio/mpeg", "audio/mp4", "audio/x-m4a", "audio/m4a",
+    "audio/wav", "audio/x-wav", "audio/wave",
+    "video/mp4",  # .mp4 audio-only — browsers often send this content-type
+}
+ALLOWED_SLIDE_EXTS = {".pdf", ".txt", ".md", ".json"}
+ALLOWED_SLIDE_TYPES = {
+    "application/pdf",
+    "text/plain", "text/markdown", "text/x-markdown",
+    "application/json", "application/octet-stream",  # some browsers send octet-stream for .md/.json
+}
 _BUCKET = "audio-files"
 MAX_AUDIO_MINUTES = 60
 MAX_SLIDE_PAGES = 60
+MAX_SLIDE_CHARS = 200_000
 
 
 def safe_filename(name: str) -> str:
@@ -57,11 +69,23 @@ async def upload_meeting(
     slides: Optional[UploadFile] = FileParam(None),
 ):
     if not file and not slides:
-        raise HTTPException(status_code=422, detail="Cần ít nhất 1 file (audio hoặc PDF).")
-    if file and file.content_type not in ALLOWED_AUDIO:
-        raise HTTPException(status_code=422, detail="File âm thanh không hợp lệ. Chỉ hỗ trợ định dạng .mp3, .m4a hoặc .wav.")
-    if slides and slides.content_type not in ALLOWED_PDF:
-        raise HTTPException(status_code=422, detail="File slide không hợp lệ. Chỉ hỗ trợ định dạng .pdf.")
+        raise HTTPException(status_code=422, detail="Cần ít nhất 1 file (audio hoặc slide).")
+
+    if file:
+        audio_ext = os.path.splitext(file.filename or "")[1].lower()
+        if audio_ext not in ALLOWED_AUDIO_EXTS and (file.content_type or "") not in ALLOWED_AUDIO_TYPES:
+            raise HTTPException(
+                status_code=422,
+                detail="File âm thanh không hợp lệ. Chỉ hỗ trợ .mp3, .mp4, .m4a hoặc .wav.",
+            )
+
+    if slides:
+        slide_ext = os.path.splitext(slides.filename or "")[1].lower()
+        if slide_ext not in ALLOWED_SLIDE_EXTS and (slides.content_type or "") not in ALLOWED_SLIDE_TYPES:
+            raise HTTPException(
+                status_code=422,
+                detail="File slide không hợp lệ. Chỉ hỗ trợ .pdf, .txt, .md hoặc .json.",
+            )
 
     sb = get_supabase()
 
@@ -88,17 +112,24 @@ async def upload_meeting(
         except Exception:
             pass  # Cannot read duration — accept file, pipeline will process it
 
-    # Validate PDF page count
-    if slide_bytes:
-        try:
-            reader = PdfReader(io.BytesIO(slide_bytes))
-            page_count = len(reader.pages)
-            if page_count > MAX_SLIDE_PAGES:
+    # Validate slide size
+    if slide_bytes and slides:
+        slide_ext = os.path.splitext(slides.filename or "")[1].lower()
+        if slide_ext == ".pdf":
+            try:
+                reader = PdfReader(io.BytesIO(slide_bytes))
+                page_count = len(reader.pages)
+                if page_count > MAX_SLIDE_PAGES:
+                    errors.append(
+                        f"File PDF có {page_count} trang, vượt quá giới hạn {MAX_SLIDE_PAGES} trang."
+                    )
+            except Exception:
+                pass  # Cannot read pages — accept file, pipeline will re-check
+        else:
+            if len(slide_bytes) > MAX_SLIDE_CHARS * 4:  # generous byte->char headroom
                 errors.append(
-                    f"File PDF có {page_count} trang, vượt quá giới hạn {MAX_SLIDE_PAGES} trang."
+                    f"File slide vượt quá giới hạn {MAX_SLIDE_CHARS} ký tự."
                 )
-        except Exception:
-            pass  # Cannot read pages — accept file, pipeline will re-check
 
     # Return all errors at once
     if errors:
